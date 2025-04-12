@@ -1,0 +1,287 @@
+/**
+ * WooCommerce Loyalty Gamification - Admin Styles
+ */
+
+/* Variables */
+:root {
+ --loyalty-primary: #7952b3;
+ --loyalty-primary-dark: #5e3d8f;
+ --loyalty-primary-light: #9c74d5;
+ --loyalty-secondary: #fd7e14;
+ --loyalty-secondary-dark: #c85e02;
+ --loyalty-success: #28a745;
+ --loyalty-info: #17a2b8;
+ --loyalty-warning: #ffc107;
+ --loyalty-danger: #dc3545;
+ --loyalty-light: #f8f9fa;
+ --loyalty-dark: #343a40;
+ --loyalty-white: #ffffff;
+
+ --loyalty-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+ --loyalty-shadow-hover: 0 3px 8px rgba(0, 0, 0, 0.15);
+ --loyalty-transition: all 0.3s ease;
+ --loyalty-border-radius: 4px;
+}
+
+/* Settings Page Styles */
+.wc-loyalty-settings-page {
+ margin: 20px 0;
+}
+
+.wc-loyalty-settings-page h1 {
+ color: var(--loyalty-primary-dark);
+ font-size: 24px;
+ margin-bottom: 30px;
+ padding-bottom: 15px;
+ border-bottom: 2px solid var(--loyalty-primary-light);
+}
+
+.wc-loyalty-settings-page .nav-tab-wrapper {
+ margin-bottom: 20px;
+}
+
+.wc-loyalty-settings-page .nav-tab {
+ background-color: var(--loyalty-white);
+ border-color: #ddd;
+ color: #666;
+ font-weight: 500;
+}
+
+.wc-loyalty-settings-page .nav-tab:hover {
+ background-color: #f8f9fa;
+ color: var(--loyalty-primary);
+}
+
+.wc-loyalty-settings-page .nav-tab-active,
+.wc-loyalty-settings-page .nav-tab-active:hover {
+ background-color: var(--loyalty-primary);
+ border-color: var(--loyalty-primary);
+ color: var(--loyalty-white);
+}
+
+.wc-loyalty-settings-page .form-table {
+ background-color: var(--loyalty-white);
+ border-radius: var(--loyalty-border-radius);
+ box-shadow: var(--loyalty-shadow);
+ margin-bottom: 30px;
+}
+
+.wc-loyalty-settings-page .form-table th {
+ padding: 20px;
+ font-weight: 600;
+}
+
+.wc-loyalty-settings-page .form-table td {
+ padding: 20px;
+}
+
+.wc-loyalty-settings-page input[type="text"],
+.wc-loyalty-settings-page input[type="number"],
+.wc-loyalty-settings-page select {
+ padding: 8px 12px;
+ border-radius: var(--loyalty-border-radius);
+ border: 1px solid #ddd;
+ min-width: 250px;
+}
+
+.wc-loyalty-settings-page input[type="number"] {
+ width: 100px;
+}
+
+.wc-loyalty-settings-page .description {
+ color: #666;
+ font-style: italic;
+ margin-top: 5px;
+}
+
+/* Reward Tiers */
+.wc-loyalty-reward-tiers {
+ margin-bottom: 20px;
+}
+
+.wc-loyalty-reward-tier {
+ display: flex;
+ align-items: center;
+ margin-bottom: 10px;
+ background-color: var(--loyalty-light);
+ padding: 15px;
+ border-radius: var(--loyalty-border-radius);
+ box-shadow: var(--loyalty-shadow);
+ transition: var(--loyalty-transition);
+}
+
+.wc-loyalty-reward-tier:hover {
+ box-shadow: var(--loyalty-shadow-hover);
+}
+
+.wc-loyalty-reward-tier input,
+.wc-loyalty-reward-tier select {
+ margin-right: 10px;
+}
+
+.wc-loyalty-reward-tier-points {
+ min-width: 100px;
+}
+
+.wc-loyalty-reward-tier-type {
+ min-width: 150px;
+}
+
+.wc-loyalty-reward-tier-value {
+ min-width: 100px;
+}
+
+.wc-loyalty-reward-tier-actions {
+ margin-left: 10px;
+}
+
+.wc-loyalty-add-tier {
+ margin-top: 10px !important;
+ background-color: var(--loyalty-primary) !important;
+ border-color: var(--loyalty-primary-dark) !important;
+ color: var(--loyalty-white) !important;
+ padding: 5px 15px !important;
+ font-weight: 500 !important;
+}
+
+.wc-loyalty-add-tier:hover {
+ background-color: var(--loyalty-primary-dark) !important;
+ border-color: var(--loyalty-primary-dark) !important;
+}
+
+.wc-loyalty-remove-tier {
+ background-color: var(--loyalty-danger) !important;
+ border-color: var(--loyalty-danger) !important;
+ color: var(--loyalty-white) !important;
+}
+
+.wc-loyalty-remove-tier:hover {
+ background-color: #c82333 !important;
+ border-color: #bd2130 !important;
+}
+
+/* Free Products Section */
+.wc-loyalty-free-products {
+ background-color: var(--loyalty-white);
+ border-radius: var(--loyalty-border-radius);
+ box-shadow: var(--loyalty-shadow);
+ padding: 20px;
+ margin-top: 40px;
+}
+
+.wc-loyalty-free-products h2 {
+ color: var(--loyalty-primary-dark);
+ font-size: 20px;
+ margin-top: 0;
+ margin-bottom: 20px;
+}
+
+.wc-loyalty-free-products p {
+ margin-bottom: 20px;
+}
+
+.wc-loyalty-free-products table {
+ border-collapse: collapse;
+ width: 100%;
+ margin-bottom: 30px;
+}
+
+.wc-loyalty-free-products th {
+ background-color: var(--loyalty-primary-light);
+ color: var(--loyalty-white);
+ padding: 10px 15px;
+ text-align: left;
+}
+
+.wc-loyalty-free-products td {
+ padding: 10px 15px;
+ border-bottom: 1px solid #eee;
+}
+
+.wc-loyalty-free-products tr:last-child td {
+ border-bottom: none;
+}
+
+.wc-loyalty-free-products tr:nth-child(even) {
+ background-color: #f8f9fa;
+}
+
+.wc-loyalty-free-products .wc-loyalty-product-actions {
+ text-align: right;
+}
+
+.wc-loyalty-free-products .button-secondary {
+ background-color: var(--loyalty-white);
+ color: var(--loyalty-danger);
+ border-color: var(--loyalty-danger);
+}
+
+.wc-loyalty-free-products .button-secondary:hover {
+ background-color: var(--loyalty-danger);
+ color: var(--loyalty-white);
+}
+
+.wc-loyalty-add-product-form {
+ background-color: #f8f9fa;
+ padding: 20px;
+ border-radius: var(--loyalty-border-radius);
+}
+
+.wc-loyalty-add-product-form h3 {
+ margin-top: 0;
+ color: var(--loyalty-dark);
+ font-size: 16px;
+ margin-bottom: 15px;
+}
+
+.wc-loyalty-add-product-form .select2-container {
+ min-width: 400px;
+}
+
+.wc-loyalty-add-product-form .button-primary {
+ background-color: var(--loyalty-primary);
+ border-color: var(--loyalty-primary-dark);
+ margin-left: 10px;
+}
+
+.wc-loyalty-add-product-form .button-primary:hover {
+ background-color: var(--loyalty-primary-dark);
+ border-color: var(--loyalty-primary-dark);
+}
+
+/* Responsive Styles */
+@media screen and (max-width: 782px) {
+ .wc-loyalty-settings-page .form-table th {
+  padding: 15px;
+ }
+
+ .wc-loyalty-settings-page .form-table td {
+  padding: 15px;
+ }
+
+ .wc-loyalty-settings-page input[type="text"],
+ .wc-loyalty-settings-page input[type="number"],
+ .wc-loyalty-settings-page select {
+  min-width: auto;
+ }
+
+ .wc-loyalty-reward-tier {
+  flex-wrap: wrap;
+ }
+
+ .wc-loyalty-reward-tier input,
+ .wc-loyalty-reward-tier select {
+  margin-bottom: 10px;
+ }
+
+ .wc-loyalty-reward-tier-actions {
+  width: 100%;
+  text-align: right;
+  margin-top: 10px;
+  margin-left: 0;
+ }
+
+ .wc-loyalty-add-product-form .select2-container {
+  min-width: 250px;
+ }
+}
