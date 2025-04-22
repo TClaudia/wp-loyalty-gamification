@@ -345,3 +345,10 @@ class WC_Loyalty_Gamification {
 function WC_Loyalty() {
     return WC_Loyalty_Gamification::instance();
 }
+
+// Add this to your main plugin file temporarily
+function wc_loyalty_force_rewrite_flush() {
+    // This is a temporary function to force flush rewrite rules
+    flush_rewrite_rules();
+}
+add_action('init', 'wc_loyalty_force_rewrite_flush', 99);

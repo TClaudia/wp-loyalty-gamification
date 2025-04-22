@@ -8,6 +8,10 @@
  */
 
 defined('ABSPATH') || exit;
+
+$user_id = get_current_user_id();
+$user_coupons = WC_Loyalty()->rewards->get_user_coupons($user_id);
+$user_notifications = WC_Loyalty()->rewards->get_user_notifications($user_id);
 ?>
 
 <!-- Loyalty Button -->
@@ -22,9 +26,26 @@ defined('ABSPATH') || exit;
         
         <h2><?php esc_html_e('Your Loyalty Points', 'wc-loyalty-gamification'); ?></h2>
         
+        <?php
+        // Calculate proper display points
+        $highest_tier = !empty($reward_tiers) ? max(array_keys($reward_tiers)) : 2000;
+        $display_points = min($user_points, $highest_tier);
+        
+        // Recalculate progress percentage
+        $progress = 0;
+        if ($next_tier !== null) {
+            $progress = ($user_points / $next_tier) * 100;
+        } elseif (!empty($reward_tiers)) {
+            // If user has passed all tiers, cap at 100%
+            $progress = 100;
+        }
+        // Limit to 100%
+        $progress = min($progress, 100);
+        ?>
+        
         <div class="wc-loyalty-points-display">
             <div class="wc-loyalty-progress-circle" data-progress="<?php echo esc_attr($progress); ?>">
-                <div class="wc-loyalty-points-count"><?php echo esc_html($user_points); ?></div>
+                <div class="wc-loyalty-points-count"><?php echo esc_html($display_points); ?></div>
             </div>
             
             <?php if ($next_tier) : ?>
@@ -42,6 +63,48 @@ defined('ABSPATH') || exit;
                 </div>
             <?php endif; ?>
         </div>
+        
+        <?php if (!empty($user_coupons)) : ?>
+            <div class="wc-loyalty-coupons-list">
+                <h3><?php esc_html_e('Your Discount Coupons', 'wc-loyalty-gamification'); ?></h3>
+                
+                <?php foreach ($user_coupons as $index => $coupon) : 
+                    $coupon_expired = strtotime($coupon['expires']) < time();
+                    $coupon_class = $coupon['is_used'] ? 'used' : ($coupon_expired ? 'expired' : 'active');
+                ?>
+                    <div class="wc-loyalty-coupon <?php echo esc_attr($coupon_class); ?>">
+                        <div class="wc-loyalty-coupon-discount">
+                            <?php printf(esc_html__('%d%% OFF', 'wc-loyalty-gamification'), $coupon['discount']); ?>
+                        </div>
+                        <div class="wc-loyalty-coupon-code">
+                            <?php echo esc_html($coupon['code']); ?>
+                            <button class="wc-loyalty-copy-code" data-code="<?php echo esc_attr($coupon['code']); ?>"><?php esc_html_e('Copy', 'wc-loyalty-gamification'); ?></button>
+                        </div>
+                        <div class="wc-loyalty-coupon-expiry">
+                            <?php if ($coupon_expired) : ?>
+                                <?php esc_html_e('Expired', 'wc-loyalty-gamification'); ?>
+                            <?php elseif ($coupon['is_used']) : ?>
+                                <?php esc_html_e('Used', 'wc-loyalty-gamification'); ?>
+                            <?php else : ?>
+                                <?php printf(esc_html__('Valid until %s', 'wc-loyalty-gamification'), date_i18n(get_option('date_format'), strtotime($coupon['expires']))); ?>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+        
+        <?php if (!empty($user_notifications)) : ?>
+            <div class="wc-loyalty-notifications">
+                <h3><?php esc_html_e('Notifications', 'wc-loyalty-gamification'); ?></h3>
+                
+                <?php foreach ($user_notifications as $index => $notification) : ?>
+                    <div class="wc-loyalty-notification <?php echo esc_attr($notification['type']); ?>">
+                        <?php echo esc_html($notification['message']); ?>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
         
         <div class="wc-loyalty-rewards-list">
             <h3><?php esc_html_e('Rewards', 'wc-loyalty-gamification'); ?></h3>

@@ -164,4 +164,33 @@
         WCLoyalty.init();
     });
 
+// Handle copy coupon code functionality
+$('.wc-loyalty-copy-code').on('click', function(e) {
+    e.preventDefault();
+    
+    var couponCode = $(this).data('code');
+    var $button = $(this);
+    
+    // Create a temporary input element
+    var $temp = $("<input>");
+    $("body").append($temp);
+    $temp.val(couponCode).select();
+    
+    // Copy the text
+    document.execCommand("copy");
+    $temp.remove();
+    
+    // Change button text to indicate copied
+    var originalText = $button.text();
+    $button.text('Copied!');
+    
+    // Reset button text after a delay
+    setTimeout(function() {
+        $button.text(originalText);
+    }, 2000);
+    
+    // Show notification
+    WCLoyalty.showNotification('Coupon code copied to clipboard!', 'success');
+});
+
 })(jQuery);

@@ -13,11 +13,12 @@ defined('ABSPATH') || exit;
 <div class="wrap wc-loyalty-settings-page">
     <h1><?php esc_html_e('Loyalty Program Settings', 'wc-loyalty-gamification'); ?></h1>
     
-    <div class="wc-loyalty-settings-tabs nav-tab-wrapper">
-        <a href="#general-settings" class="nav-tab"><?php esc_html_e('General Settings', 'wc-loyalty-gamification'); ?></a>
-        <a href="#reward-tiers" class="nav-tab"><?php esc_html_e('Reward Tiers', 'wc-loyalty-gamification'); ?></a>
-        <a href="#free-products" class="nav-tab"><?php esc_html_e('Free Products', 'wc-loyalty-gamification'); ?></a>
-    </div>
+   <div class="wc-loyalty-settings-tabs nav-tab-wrapper">
+    <a href="#general-settings" class="nav-tab"><?php esc_html_e('General Settings', 'wc-loyalty-gamification'); ?></a>
+    <a href="#reward-tiers" class="nav-tab"><?php esc_html_e('Reward Tiers', 'wc-loyalty-gamification'); ?></a>
+    <a href="#membership-tiers" class="nav-tab"><?php esc_html_e('Membership Tiers', 'wc-loyalty-gamification'); ?></a>
+    <a href="#free-products" class="nav-tab"><?php esc_html_e('Free Products', 'wc-loyalty-gamification'); ?></a>
+</div>
     
     <form method="post" action="options.php" id="wc-loyalty-settings-form">
         <?php settings_fields('wc_loyalty_settings'); ?>
@@ -81,6 +82,41 @@ defined('ABSPATH') || exit;
             
             <?php submit_button(); ?>
         </div>
+
+        <!-- Membership Tiers Tab -->
+<div id="membership-tiers" class="wc-loyalty-tab-content">
+    <div class="wc-loyalty-tiers" id="wc-loyalty-tiers">
+        <?php
+        $tiers = unserialize(get_option('wc_loyalty_tiers', 'a:0:{}'));
+        
+        if (!empty($tiers)) {
+            foreach ($tiers as $tier_key => $tier_data) {
+                ?>
+                <div class="wc-loyalty-tier">
+                    <div class="wc-loyalty-tier-header">
+                        <div class="wc-loyalty-tier-color-preview" style="background-color: <?php echo esc_attr($tier_data['color']); ?>"></div>
+                        <input type="text" class="wc-loyalty-tier-key" value="<?php echo esc_attr($tier_key); ?>" placeholder="<?php esc_attr_e('Key (e.g. bronze)', 'wc-loyalty-gamification'); ?>" />
+                        <input type="text" class="wc-loyalty-tier-name" value="<?php echo esc_attr($tier_data['name']); ?>" placeholder="<?php esc_attr_e('Display Name', 'wc-loyalty-gamification'); ?>" />
+                        <input type="number" class="wc-loyalty-tier-min-points" value="<?php echo esc_attr($tier_data['min_points']); ?>" placeholder="<?php esc_attr_e('Min Points', 'wc-loyalty-gamification'); ?>" min="0" step="1" />
+                        <input type="text" class="wc-loyalty-tier-color" value="<?php echo esc_attr($tier_data['color']); ?>" placeholder="<?php esc_attr_e('Color', 'wc-loyalty-gamification'); ?>" />
+                        <div class="wc-loyalty-tier-actions">
+                            <button type="button" class="button wc-loyalty-remove-tier"><?php esc_html_e('Remove', 'wc-loyalty-gamification'); ?></button>
+                        </div>
+                    </div>
+                    <div class="wc-loyalty-tier-perks-entry">
+                        <textarea class="wc-loyalty-tier-perks-text" placeholder="<?php esc_attr_e('Tier benefits description', 'wc-loyalty-gamification'); ?>"><?php echo esc_textarea($tier_data['perks']); ?></textarea>
+                    </div>
+                </div>
+                <?php
+            }
+        }
+        ?>
+    </div>
+    
+    <button type="button" id="wc-loyalty-add-tier-membership" class="button wc-loyalty-add-tier"><?php esc_html_e('Add Membership Tier', 'wc-loyalty-gamification'); ?></button>
+    
+    <?php submit_button(); ?>
+</div>
         
         <!-- Free Products Tab -->
         <div id="free-products" class="wc-loyalty-tab-content">

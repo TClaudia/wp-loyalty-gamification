@@ -655,4 +655,250 @@
    visibility: visible !important;
    opacity: 1 !important;
   }
+
+    /* Tier Styles */
+    .wc-loyalty-tier-summary {
+      background-color: var(--loyalty-light);
+      padding: 20px;
+      border-radius: var(--loyalty-border-radius);
+      margin-bottom: 30px;
+      box-shadow: var(--loyalty-shadow);
+    }
+  
+    .wc-loyalty-current-tier {
+      display: flex;
+      align-items: flex-start;
+      margin-bottom: 20px;
+      padding: 15px;
+      background-color: var(--loyalty-white);
+      border-radius: var(--loyalty-border-radius);
+      border-left: 4px solid;
+      box-shadow: var(--loyalty-shadow);
+    }
+  
+    .wc-loyalty-tier-badge {
+      padding: 8px 12px;
+      border-radius: 20px;
+      color: var(--loyalty-white);
+      font-weight: 700;
+      font-size: 14px;
+      margin-right: 15px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      min-width: 80px;
+      text-align: center;
+    }
+  
+    .wc-loyalty-tier-perks {
+      flex-grow: 1;
+    }
+  
+    .wc-loyalty-tier-perks h4 {
+      margin-top: 0;
+      margin-bottom: 5px;
+      color: var(--loyalty-primary-dark);
+    }
+  
+    .wc-loyalty-next-tier-progress {
+      padding: 15px;
+      background-color: var(--loyalty-white);
+      border-radius: var(--loyalty-border-radius);
+      box-shadow: var(--loyalty-shadow);
+    }
+  
+    .wc-loyalty-next-tier-progress h4 {
+      margin-top: 0;
+      margin-bottom: 10px;
+      color: var(--loyalty-primary-dark);
+    }
+  
+    .wc-loyalty-progress-container {
+      margin-top: 10px;
+    }
+  
+    .wc-loyalty-progress-bar {
+      height: 10px;
+      background-color: #f0f0f0;
+      border-radius: 5px;
+      margin-bottom: 5px;
+      overflow: hidden;
+    }
+  
+    .wc-loyalty-progress-fill {
+      height: 100%;
+      border-radius: 5px;
+    }
+  
+    .wc-loyalty-progress-text {
+      font-size: 14px;
+      color: var(--loyalty-dark);
+    }
+  
+    /* Comment Badge Styles */
+    .comment-author .wc-loyalty-comment-badge {
+      display: inline-block;
+      margin-left: 5px;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 10px;
+      color: white;
+      vertical-align: middle;
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+        /* Coupons Styles */
+        .wc-loyalty-coupons-list {
+          margin-bottom: 30px;
+        }
+    
+        .wc-loyalty-coupons-list h3 {
+          color: var(--loyalty-primary-dark);
+          margin-bottom: 20px;
+          font-size: 20px;
+          font-weight: 600;
+          position: relative;
+          padding-left: 25px;
+        }
+    
+        .wc-loyalty-coupons-list h3:before {
+          content: "\f524";
+          /* Coupon icon */
+          font-family: "dashicons";
+          position: absolute;
+          left: 0;
+          top: 2px;
+          color: var(--loyalty-secondary);
+        }
+    
+        .wc-loyalty-coupon {
+          background: linear-gradient(135deg, var(--loyalty-primary-light), var(--loyalty-primary));
+          color: white;
+          border-radius: var(--loyalty-border-radius);
+          padding: 15px;
+          margin-bottom: 15px;
+          position: relative;
+          overflow: hidden;
+          box-shadow: var(--loyalty-shadow);
+        }
+    
+        .wc-loyalty-coupon:before {
+          content: "";
+          position: absolute;
+          top: 0;
+          right: 0;
+          bottom: 0;
+          width: 15px;
+          background: repeating-linear-gradient(0deg,
+              rgba(255, 255, 255, 0.1),
+              rgba(255, 255, 255, 0.1) 5px,
+              transparent 5px,
+              transparent 10px);
+        }
+    
+        .wc-loyalty-coupon-discount {
+          font-size: 24px;
+          font-weight: 700;
+          margin-bottom: 10px;
+          text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+        }
+    
+        .wc-loyalty-coupon-code {
+          background: rgba(255, 255, 255, 0.2);
+          padding: 10px;
+          border-radius: 4px;
+          font-family: monospace;
+          font-size: 18px;
+          font-weight: 600;
+          letter-spacing: 1px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 10px;
+        }
+    
+        .wc-loyalty-copy-code {
+          background-color: var(--loyalty-secondary);
+          color: white;
+          border: none;
+          padding: 5px 10px;
+          border-radius: 3px;
+          cursor: pointer;
+          font-size: 12px;
+          font-weight: 600;
+          transition: var(--loyalty-transition);
+        }
+    
+        .wc-loyalty-copy-code:hover {
+          background-color: var(--loyalty-secondary-dark);
+        }
+    
+        .wc-loyalty-coupon-expiry {
+          font-size: 13px;
+          font-weight: 500;
+          opacity: 0.9;
+        }
+    
+        .wc-loyalty-coupon.used,
+        .wc-loyalty-coupon.expired {
+          background: #999;
+          opacity: 0.7;
+        }
+    
+        .wc-loyalty-coupon.used:after,
+        .wc-loyalty-coupon.expired:after {
+          content: attr(data-status);
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%) rotate(-30deg);
+          font-size: 24px;
+          font-weight: 700;
+          color: rgba(255, 255, 255, 0.5);
+          border: 3px solid rgba(255, 255, 255, 0.5);
+          padding: 5px 15px;
+          border-radius: 5px;
+          pointer-events: none;
+        }
+    
+        .wc-loyalty-coupon.used:after {
+          content: "USED";
+        }
+    
+        .wc-loyalty-coupon.expired:after {
+          content: "EXPIRED";
+        }
+    
+        /* Notifications */
+        .wc-loyalty-notifications {
+          margin-bottom: 30px;
+        }
+    
+        .wc-loyalty-notifications h3 {
+          color: var(--loyalty-primary-dark);
+          margin-bottom: 15px;
+          font-size: 20px;
+          font-weight: 600;
+        }
+    
+        .wc-loyalty-notification {
+          padding: 12px 15px;
+          margin-bottom: 10px;
+          border-radius: var(--loyalty-border-radius);
+          background-color: var(--loyalty-light);
+          border-left: 4px solid var(--loyalty-primary);
+        }
+    
+        .wc-loyalty-notification.discount {
+          border-color: var(--loyalty-secondary);
+        }
+    
+        .wc-loyalty-notification.free_shipping {
+          border-color: var(--loyalty-info);
+        }
+    
+        .wc-loyalty-notification.free_product {
+          border-color: var(--loyalty-success);
+        }
 }

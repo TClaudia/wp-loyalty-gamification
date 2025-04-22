@@ -284,4 +284,82 @@
  .wc-loyalty-add-product-form .select2-container {
   min-width: 250px;
  }
+  /* Membership Tiers */
+  .wc-loyalty-tiers {
+   margin-bottom: 20px;
+  }
+ 
+  .wc-loyalty-tier {
+   margin-bottom: 15px;
+   background-color: var(--loyalty-light);
+   padding: 15px;
+   border-radius: var(--loyalty-border-radius);
+   box-shadow: var(--loyalty-shadow);
+   transition: var(--loyalty-transition);
+  }
+ 
+  .wc-loyalty-tier:hover {
+   box-shadow: var(--loyalty-shadow-hover);
+  }
+ 
+  .wc-loyalty-tier-header {
+   display: flex;
+   align-items: center;
+   margin-bottom: 10px;
+  }
+ 
+  .wc-loyalty-tier-color-preview {
+   width: 25px;
+   height: 25px;
+   border-radius: 50%;
+   margin-right: 10px;
+   border: 1px solid #ddd;
+  }
+ 
+  .wc-loyalty-tier-key {
+   width: 120px;
+   margin-right: 10px;
+  }
+ 
+  .wc-loyalty-tier-name {
+   width: 150px;
+   margin-right: 10px;
+  }
+ 
+  .wc-loyalty-tier-min-points {
+   width: 100px;
+   margin-right: 10px;
+  }
+ 
+  .wc-loyalty-tier-color {
+   width: 100px;
+   margin-right: 10px;
+  }
+ 
+  .wc-loyalty-tier-actions {
+   margin-left: auto;
+  }
+ 
+  .wc-loyalty-tier-perks-entry {
+   margin-top: 10px;
+  }
+ 
+  .wc-loyalty-tier-perks-text {
+   width: 100%;
+   min-height: 60px;
+  }
+ 
+  #wc-loyalty-add-tier-membership {
+   margin-top: 10px !important;
+   background-color: var(--loyalty-primary) !important;
+   border-color: var(--loyalty-primary-dark) !important;
+   color: var(--loyalty-white) !important;
+   padding: 5px 15px !important;
+   font-weight: 500 !important;
+  }
+ 
+  #wc-loyalty-add-tier-membership:hover {
+   background-color: var(--loyalty-primary-dark) !important;
+   border-color: var(--loyalty-primary-dark) !important;
+  }
 }

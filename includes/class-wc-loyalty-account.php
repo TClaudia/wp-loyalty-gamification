@@ -17,24 +17,25 @@ class WC_Loyalty_Account {
     /**
      * Constructor.
      */
-    public function __construct() {
-        // Add My Account endpoint
-        add_action('init', array($this, 'add_endpoints'));
-        
-        // Add My Account menu item
-        add_filter('woocommerce_account_menu_items', array($this, 'add_account_menu_items'));
-        
-        // Add content to My Account endpoint
-        add_action('woocommerce_account_loyalty-points_endpoint', array($this, 'loyalty_points_content'));
-        
-        // Add points info to My Account dashboard
-        add_action('woocommerce_account_dashboard', array($this, 'account_dashboard_widget'));
-    }
+public function __construct() {
+    // Add endpoints early
+    add_action('init', array($this, 'add_endpoints'), 10);
+    
+    // Add My Account menu item
+    add_filter('woocommerce_account_menu_items', array($this, 'add_account_menu_items'));
+    
+    // Add content to My Account endpoint
+    add_action('woocommerce_account_loyalty-points_endpoint', array($this, 'loyalty_points_content'));
+    
+    // Add points info to My Account dashboard
+    add_action('woocommerce_account_dashboard', array($this, 'account_dashboard_widget'));
+}
     
     /**
      * Add endpoints.
      */
     public function add_endpoints() {
+         flush_rewrite_rules();
         add_rewrite_endpoint('loyalty-points', EP_ROOT | EP_PAGES);
     }
     

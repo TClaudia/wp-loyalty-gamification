@@ -10,6 +10,54 @@
 defined('ABSPATH') || exit;
 ?>
 
+<div class="wc-loyalty-tier-summary">
+    <?php
+    $tier_key = WC_Loyalty()->points->get_user_tier($user_id);
+    $tier_data = WC_Loyalty()->points->get_user_tier_data($user_id);
+    $next_tier = WC_Loyalty()->points->get_next_tier_data($user_id);
+    ?>
+    <div class="wc-loyalty-current-tier" style="border-color: <?php echo esc_attr($tier_data['color']); ?>">
+        <div class="wc-loyalty-tier-badge" style="background-color: <?php echo esc_attr($tier_data['color']); ?>">
+            <?php echo esc_html($tier_data['name']); ?>
+        </div>
+        <div class="wc-loyalty-tier-perks">
+            <h4><?php esc_html_e('Your Member Benefits', 'wc-loyalty-gamification'); ?></h4>
+            <p><?php echo esc_html($tier_data['perks']); ?></p>
+        </div>
+    </div>
+    
+    <?php if ($next_tier): ?>
+    <div class="wc-loyalty-next-tier-progress">
+        <h4>
+            <?php 
+            printf(
+                esc_html__('Next Tier: %s', 'wc-loyalty-gamification'),
+                esc_html($next_tier['name'])
+            ); 
+            ?>
+        </h4>
+        <div class="wc-loyalty-progress-container">
+            <?php 
+            $points_needed = $next_tier['min_points'] - $points;
+            $percentage = min(100, ($points / $next_tier['min_points']) * 100);
+            ?>
+            <div class="wc-loyalty-progress-bar">
+                <div class="wc-loyalty-progress-fill" style="width: <?php echo esc_attr($percentage); ?>%; background-color: <?php echo esc_attr($next_tier['color']); ?>"></div>
+            </div>
+            <div class="wc-loyalty-progress-text">
+                <?php 
+                printf(
+                    esc_html__('You need %d more points to reach %s level', 'wc-loyalty-gamification'),
+                    $points_needed,
+                    esc_html($next_tier['name'])
+                ); 
+                ?>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+</div>
+
 <div class="wc-loyalty-points-page">
     <div class="wc-loyalty-points-summary">
         <div class="wc-loyalty-points-summary-value"><?php echo esc_html($points); ?></div>

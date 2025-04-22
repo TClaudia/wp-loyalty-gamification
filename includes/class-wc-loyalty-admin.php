@@ -64,6 +64,8 @@ class WC_Loyalty_Admin {
         
         // Save reward tiers
         add_action('admin_init', array($this, 'save_reward_tiers'));
+           
+        add_action('admin_init', array($this, 'save_membership_tiers'));
     }
     
     /**
@@ -171,4 +173,22 @@ class WC_Loyalty_Admin {
         $table_name = $wpdb->prefix . 'wc_loyalty_free_products';
         return $wpdb->get_results("SELECT * FROM $table_name");
     }
+    /**
+ * Save serialized membership tiers.
+ */
+public function save_membership_tiers() {
+    if (isset($_POST['wc_loyalty_tiers'])) {
+        $tiers_json = stripslashes($_POST['wc_loyalty_tiers']);
+        $tiers = json_decode($tiers_json, true);
+        
+        if (is_array($tiers)) {
+            // Sort tiers by min_points
+            uasort($tiers, function($a, $b) {
+                return $a['min_points'] - $b['min_points'];
+            });
+            
+            update_option('wc_loyalty_tiers', serialize($tiers));
+        }
+    }
+}
 }

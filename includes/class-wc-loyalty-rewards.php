@@ -58,34 +58,101 @@ class WC_Loyalty_Rewards {
      * @param array $reward Reward data
      */
     private function process_reward($user_id, $tier, $reward) {
-        $user = get_user_by('id', $user_id);
-        
-        switch ($reward['type']) {
-            case 'discount':
-                // Generate coupon code
-                $coupon_code = $this->generate_discount_coupon($user_id, $reward['value']);
-                
-                // Send email with coupon code
-                $this->send_reward_email($user->user_email, 'discount', array(
-                    'discount' => $reward['value'],
-                    'coupon_code' => $coupon_code
-                ));
-                break;
-                
-            case 'free_shipping':
-                // Enable free shipping for next order
-                update_user_meta($user_id, '_wc_loyalty_free_shipping', 'yes');
-                
-                // Send email notification
-                $this->send_reward_email($user->user_email, 'free_shipping');
-                break;
-                
-            case 'free_product':
-                // Send email with link to claim free product
-                $this->send_reward_email($user->user_email, 'free_product');
-                break;
-        }
+    $user = get_user_by('id', $user_id);
+    
+    switch ($reward['type']) {
+        case 'discount':
+            // Generate coupon code
+            $coupon_code = $this->generate_discount_coupon($user_id, $reward['value']);
+            
+            // Store the coupon code for the user to display on site instead of email
+            $this->store_user_coupon($user_id, $coupon_code, $reward['value'], '+30 days');
+            
+            break;
+            
+        case 'free_shipping':
+            // Enable free shipping for next order
+            update_user_meta($user_id, '_wc_loyalty_free_shipping', 'yes');
+            
+            // Store notification to display on site
+            $this->store_user_notification($user_id, 'free_shipping', __('You\'ve earned free shipping on your next order!', 'wc-loyalty-gamification'));
+            
+            break;
+            
+        case 'free_product':
+            // Store notification to display on site
+            $this->store_user_notification($user_id, 'free_product', __('You\'ve earned a free product! See below to claim it.', 'wc-loyalty-gamification'));
+            
+            break;
     }
+}
+
+/**
+ * Store user coupon for frontend display
+ */
+private function store_user_coupon($user_id, $coupon_code, $discount_value, $expiry = '+30 days') {
+    $user_coupons = get_user_meta($user_id, '_wc_loyalty_coupons', true);
+    
+    if (!is_array($user_coupons)) {
+        $user_coupons = array();
+    }
+    
+    // Add the new coupon
+    $user_coupons[] = array(
+        'code' => $coupon_code,
+        'discount' => $discount_value,
+        'created' => current_time('mysql'),
+        'expires' => date('Y-m-d H:i:s', strtotime($expiry)),
+        'is_used' => false
+    );
+    
+    // Save the updated coupons
+    update_user_meta($user_id, '_wc_loyalty_coupons', $user_coupons);
+}
+
+/**
+ * Store user notification for frontend display
+ */
+private function store_user_notification($user_id, $type, $message) {
+    $notifications = get_user_meta($user_id, '_wc_loyalty_notifications', true);
+    
+    if (!is_array($notifications)) {
+        $notifications = array();
+    }
+    
+    // Add the new notification
+    $notifications[] = array(
+        'type' => $type,
+        'message' => $message,
+        'created' => current_time('mysql'),
+        'is_read' => false
+    );
+    
+    // Save the updated notifications
+    update_user_meta($user_id, '_wc_loyalty_notifications', $notifications);
+}
+
+/**
+ * Get user coupons.
+ *
+ * @param int $user_id User ID
+ * @return array Active coupons
+ */
+public function get_user_coupons($user_id) {
+    $coupons = get_user_meta($user_id, '_wc_loyalty_coupons', true);
+    return is_array($coupons) ? $coupons : array();
+}
+
+/**
+ * Get user notifications.
+ *
+ * @param int $user_id User ID
+ * @return array Notifications
+ */
+public function get_user_notifications($user_id) {
+    $notifications = get_user_meta($user_id, '_wc_loyalty_notifications', true);
+    return is_array($notifications) ? $notifications : array();
+}
     
     /**
      * Generate discount coupon.

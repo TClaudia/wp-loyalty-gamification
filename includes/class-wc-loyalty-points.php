@@ -285,4 +285,62 @@ class WC_Loyalty_Points {
         );
         echo '</div>';
     }
+    /**
+ * Get user loyalty tier.
+ *
+ * @param int $user_id User ID
+ * @return string Tier key
+ */
+public function get_user_tier($user_id) {
+    $points = $this->get_user_points($user_id);
+    $tiers = unserialize(get_option('wc_loyalty_tiers', 'a:0:{}'));
+    
+    // Default to lowest tier
+    $current_tier = array_key_first($tiers);
+    
+    foreach ($tiers as $tier_key => $tier_data) {
+        if ($points >= $tier_data['min_points']) {
+            $current_tier = $tier_key;
+        } else {
+            break;
+        }
+    }
+    
+    return $current_tier;
+}
+
+/**
+ * Get user tier data.
+ *
+ * @param int $user_id User ID
+ * @return array Tier data
+ */
+public function get_user_tier_data($user_id) {
+    $tier_key = $this->get_user_tier($user_id);
+    $tiers = unserialize(get_option('wc_loyalty_tiers', 'a:0:{}'));
+    
+    return isset($tiers[$tier_key]) ? $tiers[$tier_key] : array();
+}
+
+/**
+ * Get next tier data.
+ *
+ * @param int $user_id User ID
+ * @return array|null Next tier data or null if at highest tier
+ */
+public function get_next_tier_data($user_id) {
+    $current_tier = $this->get_user_tier($user_id);
+    $tiers = unserialize(get_option('wc_loyalty_tiers', 'a:0:{}'));
+    $tier_keys = array_keys($tiers);
+    
+    $current_index = array_search($current_tier, $tier_keys);
+    
+    // Check if there's a next tier
+    if ($current_index !== false && isset($tier_keys[$current_index + 1])) {
+        $next_tier_key = $tier_keys[$current_index + 1];
+        return $tiers[$next_tier_key];
+    }
+    
+    return null;
+}
 }

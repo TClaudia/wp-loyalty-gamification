@@ -86,7 +86,33 @@ class WC_Loyalty_Install {
         // Points settings
         add_option('wc_loyalty_points_per_euro', 1);
         add_option('wc_loyalty_points_for_review', 50);
-        
+            add_option('wc_loyalty_tiers', serialize(array(
+        'bronze' => array(
+            'name' => 'Bronze',
+            'min_points' => 0,
+            'color' => '#cd7f32',
+            'perks' => 'Welcome to our loyalty program!'
+        ),
+        'silver' => array(
+            'name' => 'Silver',
+            'min_points' => 500,
+            'color' => '#c0c0c0',
+            'perks' => 'Enjoy special birthday offers and early sale access.'
+        ),
+        'gold' => array(
+            'name' => 'Gold',
+            'min_points' => 1000,
+            'color' => '#ffd700',
+            'perks' => 'Exclusive promotions and priority customer service.'
+        ),
+        'platinum' => array(
+            'name' => 'Platinum', 
+            'min_points' => 2000,
+            'color' => '#e5e4e2',
+            'perks' => 'VIP service and exclusive product access.'
+        )
+    )));
+    
         // Reward tiers
         add_option('wc_loyalty_reward_tiers', serialize(array(
             500 => array('type' => 'discount', 'value' => 20),
