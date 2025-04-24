@@ -114,43 +114,76 @@ class WC_Loyalty_Points {
      * @param string $description Points description
      * @return bool Success or failure
      */
-    public function add_points($user_id, $points, $description = '') {
-        global $wpdb;
+
+     // Add this at the beginning of the function
+
+
+// Add this after calculating new points
+
+// Add this after the reset check
+
+   public function add_points($user_id, $points, $description = '') {
+    global $wpdb;
+    
+    $table_name = $wpdb->prefix . 'wc_loyalty_points';
+    $current_points = $this->get_user_points($user_id);
+    
+    error_log('Adding ' . $points . ' points for user ' . $user_id . '. Current total: ' . $current_points);
+    
+    $new_points = $current_points + $points;
+    
+    error_log('New points total would be: ' . $new_points);
+    
+    // Get current history
+    $points_history = $this->get_points_history($user_id);
+    
+    // Add new entry to history
+    $points_history[] = array(
+        'date' => current_time('mysql'),
+        'points' => $points,
+        'description' => $description
+    );
+    
+    // Check if points have reached or exceeded 2000
+    if ($new_points >= 2000) {
+        // Calculate how many points to deduct (exactly 2000)
+        $points_to_deduct = 2000;
         
-        $table_name = $wpdb->prefix . 'wc_loyalty_points';
-        $current_points = $this->get_user_points($user_id);
-        $new_points = $current_points + $points;
-        
-        // Get current history
-        $points_history = $this->get_points_history($user_id);
-        
-        // Add new entry to history
+        // Add reset entry to history
         $points_history[] = array(
             'date' => current_time('mysql'),
-            'points' => $points,
-            'description' => $description
+            'points' => -$points_to_deduct, 
+            'description' => __('Points reset after reaching 2000 points threshold', 'wc-loyalty-gamification')
         );
         
-        // Update or insert user points
-        $result = $wpdb->replace(
-            $table_name,
-            array(
-                'user_id' => $user_id,
-                'points' => $new_points,
-                'points_history' => serialize($points_history),
-                'update_date' => current_time('mysql')
-            ),
-            array('%d', '%d', '%s', '%s')
-        );
+        // Reset points to whatever is left over after deducting 2000
+        $new_points = $new_points - $points_to_deduct;
         
-        if ($result) {
-            // Trigger action after points update
-            do_action('wc_loyalty_points_updated', $user_id, $new_points);
-            return true;
-        }
-        
-        return false;
+        error_log('Points reset triggered. New total after reset: ' . $new_points);
     }
+    
+    // Update or insert user points
+    $result = $wpdb->replace(
+        $table_name,
+        array(
+            'user_id' => $user_id,
+            'points' => $new_points,
+            'points_history' => serialize($points_history),
+            'update_date' => current_time('mysql')
+        ),
+        array('%d', '%d', '%s', '%s')
+    );
+    
+    error_log('Final points after save: ' . $new_points . ', Result: ' . ($result ? 'Success' : 'Failed'));
+    
+    if ($result) {
+        // Trigger action after points update
+        do_action('wc_loyalty_points_updated', $user_id, $new_points);
+        return true;
+    }
+    
+    return false;
+}
     
     /**
      * Deduct points from user account.
@@ -342,5 +375,38 @@ public function get_next_tier_data($user_id) {
     }
     
     return null;
+}
+
+/**
+ * Get user display points (with cycling at 2000).
+ *
+ * @param int $user_id User ID
+ * @return int Display points (0-2000)
+ */
+public function get_user_display_points($user_id) {
+    $points = $this->get_user_points($user_id);
+    
+    // If points exceeds 2000, cycle it
+    if ($points > 2000) {
+        return $points % 2000;
+    }
+    
+    return $points;
+}
+
+/**
+ * Get user cycle level (how many times they've reached 2000 points).
+ *
+ * @param int $user_id User ID
+ * @return int Cycle level
+ */
+public function get_user_cycle_level($user_id) {
+    $points = $this->get_user_points($user_id);
+    
+    if ($points >= 2000) {
+        return floor($points / 2000);
+    }
+    
+    return 0;
 }
 }

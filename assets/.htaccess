@@ -1,0 +1,15 @@
+# Deny direct access
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_FILENAME} -f
+    RewriteRule ^(css|js)/ - [L]
+</IfModule>
+
+# Block direct script execution
+<FilesMatch ".(php|php3|php4|php5|phtml)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# Prevent directory listing
+Options -Indexes

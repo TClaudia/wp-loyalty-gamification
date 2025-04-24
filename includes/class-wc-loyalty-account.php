@@ -34,10 +34,16 @@ public function __construct() {
     /**
      * Add endpoints.
      */
-    public function add_endpoints() {
-         flush_rewrite_rules();
-        add_rewrite_endpoint('loyalty-points', EP_ROOT | EP_PAGES);
+   public function add_endpoints() {
+    // First add the endpoint
+    add_rewrite_endpoint('loyalty-points', EP_ROOT | EP_PAGES);
+    
+    // Only flush on specific circumstances to avoid performance issues
+    if (get_option('wc_loyalty_flush_needed', 'yes') === 'yes') {
+        flush_rewrite_rules();
+        update_option('wc_loyalty_flush_needed', 'no');
     }
+}
     
     /**
      * Add menu items to My Account.

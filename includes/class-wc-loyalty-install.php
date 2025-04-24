@@ -26,6 +26,8 @@ class WC_Loyalty_Install {
         
         // Create necessary directories and files
         self::create_files();
+
+        update_option('wc_loyalty_flush_needed', 'yes');
         
         // Flush rewrite rules
         add_action('init', function() {

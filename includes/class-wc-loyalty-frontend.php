@@ -102,6 +102,12 @@ class WC_Loyalty_Frontend {
     /**
  * Render loyalty interface on frontend.
  */
+/**
+ * Render loyalty interface on frontend.
+ */
+/**
+ * Render loyalty interface on frontend.
+ */
 public function render_loyalty_interface() {
     // Only show for logged-in users
     if (!is_user_logged_in()) {
@@ -109,32 +115,17 @@ public function render_loyalty_interface() {
     }
     
     $user_id = get_current_user_id();
-    $user_points = WC_Loyalty()->points->get_user_points($user_id);
+    $total_points = WC_Loyalty()->points->get_user_points($user_id);
+    $display_points = WC_Loyalty()->points->get_user_display_points($user_id);
+    $cycle_level = WC_Loyalty()->points->get_user_cycle_level($user_id);
     $reward_tiers = unserialize(get_option('wc_loyalty_reward_tiers'));
     $claimed_rewards = WC_Loyalty()->rewards->get_rewards_claimed($user_id);
-    $next_tier = WC_Loyalty()->rewards->get_next_reward_tier($user_points, $reward_tiers);
     
-    // Calculate progress percentage
-    $progress = 0;
-    $tiers = unserialize(get_option('wc_loyalty_tiers', 'a:0:{}'));
+    // Get next tier based on total points
+    $next_tier = WC_Loyalty()->rewards->get_next_reward_tier($total_points, $reward_tiers);
     
-    // Set the max points value (platinum tier)
-    $max_points = 2000;
-    
-    if ($user_points <= $max_points) {
-        // If points are below or equal to max, calculate normally
-        $progress = ($user_points / $max_points) * 100;
-    } else {
-        // If points are above max, calculate the remainder after dividing by max
-        $remainder_points = $user_points % $max_points;
-        if ($remainder_points == 0 && $user_points > 0) {
-            // If exactly divisible, show 100%
-            $progress = 100;
-        } else {
-            // Otherwise calculate progress based on remainder
-            $progress = ($remainder_points / $max_points) * 100;
-        }
-    }
+    // Calculate progress percentage based on display points (0-2000 cycle)
+    $progress = ($display_points / 2000) * 100;
     
     // Limit to 100%
     $progress = min($progress, 100);
@@ -142,7 +133,6 @@ public function render_loyalty_interface() {
     // Load template
     include WC_LOYALTY_PLUGIN_DIR . 'templates/loyalty-interface.php';
 }
-
     /**
  * Add tier badge to comment author.
  */

@@ -901,4 +901,22 @@
         .wc-loyalty-notification.free_product {
           border-color: var(--loyalty-success);
         }
+
+                .wc-loyalty-cycle-level {
+                  text-align: center;
+                  margin: 15px auto 0;
+                  font-size: 14px;
+                  font-weight: 600;
+                  color: var(--loyalty-primary-dark);
+                  background-color: rgba(121, 82, 179, 0.1);
+                  border-radius: 20px;
+                  padding: 5px 10px;
+                  display: inline-block;
+                }
+        
+                .wc-loyalty-total-points {
+                  margin-left: 10px;
+                  padding-left: 10px;
+                  border-left: 1px solid rgba(121, 82, 179, 0.3);
+                }
 }
