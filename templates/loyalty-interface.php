@@ -29,12 +29,12 @@ $user_notifications = WC_Loyalty()->rewards->get_user_notifications($user_id);
         <?php
         // Calculate proper display points
         $highest_tier = !empty($reward_tiers) ? max(array_keys($reward_tiers)) : 2000;
-        $display_points = min($user_points, $highest_tier);
+        $display_points = min($total_points, $highest_tier);
         
         // Recalculate progress percentage
         $progress = 0;
         if ($next_tier !== null) {
-            $progress = ($user_points / $next_tier) * 100;
+            $progress = ($total_points / $next_tier) * 100;
         } elseif (!empty($reward_tiers)) {
             // If user has passed all tiers, cap at 100%
             $progress = 100;
@@ -44,33 +44,33 @@ $user_notifications = WC_Loyalty()->rewards->get_user_notifications($user_id);
         ?>
         
         <div class="wc-loyalty-points-display">
-    <div class="wc-loyalty-progress-circle" data-progress="<?php echo esc_attr($progress); ?>">
-        <div class="wc-loyalty-points-count"><?php echo esc_html($display_points); ?></div>
-    </div>
-    
-    <?php if ($cycle_level > 0) : ?>
-        <div class="wc-loyalty-cycle-level">
-            <?php printf(esc_html__('Cycle Level: %d', 'wc-loyalty-gamification'), $cycle_level); ?>
-            <span class="wc-loyalty-total-points"><?php printf(esc_html__('Total Points: %d', 'wc-loyalty-gamification'), $total_points); ?></span>
+            <div class="wc-loyalty-progress-circle" data-progress="<?php echo esc_attr($progress); ?>">
+                <div class="wc-loyalty-points-count"><?php echo esc_html($display_points); ?></div>
+            </div>
+            
+            <?php if ($cycle_level > 0) : ?>
+                <div class="wc-loyalty-cycle-level">
+                    <?php printf(esc_html__('Cycle Level: %d', 'wc-loyalty-gamification'), $cycle_level); ?>
+                    <span class="wc-loyalty-total-points"><?php printf(esc_html__('Total Points: %d', 'wc-loyalty-gamification'), $total_points); ?></span>
+                </div>
+            <?php endif; ?>
+            
+            <?php if ($next_tier) : ?>
+                <div class="wc-loyalty-points-next">
+                    <?php 
+                    $points_needed = $next_tier - $total_points;
+                    printf(
+                        esc_html__('You need %s more points to reach your next reward!', 'wc-loyalty-gamification'),
+                        '<strong>' . esc_html($points_needed) . '</strong>'
+                    ); 
+                    ?>
+                </div>
+            <?php else : ?>
+                <div class="wc-loyalty-points-next">
+                    <?php esc_html_e('Congratulations! You\'ve reached all reward tiers!', 'wc-loyalty-gamification'); ?>
+                </div>
+            <?php endif; ?>
         </div>
-    <?php endif; ?>
-    
-    <?php if ($next_tier) : ?>
-        <div class="wc-loyalty-points-next">
-            <?php 
-            $points_needed = $next_tier - $total_points;
-            printf(
-                esc_html__('You need %s more points to reach your next reward!', 'wc-loyalty-gamification'),
-                '<strong>' . esc_html($points_needed) . '</strong>'
-            ); 
-            ?>
-        </div>
-    <?php else : ?>
-        <div class="wc-loyalty-points-next">
-            <?php esc_html_e('Congratulations! You\'ve reached all reward tiers!', 'wc-loyalty-gamification'); ?>
-        </div>
-    <?php endif; ?>
-</div>
         
         <?php if (!empty($user_coupons)) : ?>
             <div class="wc-loyalty-coupons-list">
@@ -120,7 +120,7 @@ $user_notifications = WC_Loyalty()->rewards->get_user_notifications($user_id);
             <?php if (!empty($reward_tiers)) : ?>
                 <ul>
                     <?php foreach ($reward_tiers as $tier => $reward) : 
-                        $is_achieved = $user_points >= $tier;
+                        $is_achieved = $total_points >= $tier;
                         $is_claimed = isset($claimed_rewards[$tier]);
                         $class = $is_achieved ? 'achieved' : '';
                         $class .= $is_claimed ? ' claimed' : '';

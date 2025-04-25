@@ -159,6 +159,27 @@ Options -Indexes";
     }
 }
 
+/**
+ * Function to manually flush rewrite rules when needed
+ */
+function wc_loyalty_manual_flush_rules() {
+    // Check if we need to flush
+    if (get_option('wc_loyalty_flush_needed', 'yes') === 'yes') {
+        // Force add the loyalty endpoints first
+        add_rewrite_endpoint('loyalty-points', EP_ROOT | EP_PAGES);
+        add_rewrite_endpoint('loyalty-rewards', EP_ROOT | EP_PAGES);
+        
+        // Then flush rewrite rules
+        flush_rewrite_rules();
+        
+        // Update option to prevent frequent flushing
+        update_option('wc_loyalty_flush_needed', 'no');
+        
+        // Log that we flushed the rules
+        error_log('WC Loyalty: Rewrite rules flushed.');
+    }
+}
+
 // Register activation hook
 register_activation_hook(__FILE__, 'wc_loyalty_activate');
 
@@ -327,11 +348,11 @@ class WC_Loyalty_Gamification {
         );
     }
 
-    /**
-     * Initialize plugin components.
-     */
+   /**
+    * Initialize plugin components.
+    */
     public function init_components() {
-        // Initialize components
+        // Initialize components in the correct dependency order
         $this->points = new WC_Loyalty_Points();
         $this->rewards = new WC_Loyalty_Rewards();
         $this->frontend = new WC_Loyalty_Frontend();
@@ -346,9 +367,72 @@ function WC_Loyalty() {
     return WC_Loyalty_Gamification::instance();
 }
 
-// Add this to your main plugin file temporarily
-function wc_loyalty_force_rewrite_flush() {
-    // This is a temporary function to force flush rewrite rules
+// Add the manual flush rules action
+add_action('wp_loaded', 'wc_loyalty_manual_flush_rules', 30);
+
+/**
+ * Function to force flush rewrite rules
+ */
+function wc_loyalty_force_flush() {
+    // This will force adding our endpoints
+    add_rewrite_endpoint('loyalty-points', EP_ROOT | EP_PAGES);
+    add_rewrite_endpoint('loyalty-rewards', EP_ROOT | EP_PAGES);
+    
+    // Force flush rewrite rules
     flush_rewrite_rules();
+    
+    // Set a flag in the database to indicate we've done this
+    update_option('wc_loyalty_flushed_at', time());
 }
-add_action('init', 'wc_loyalty_force_rewrite_flush', 99);
+
+// Add a temporary rewrite flush - remove after permalinks start working
+add_action('init', 'wc_loyalty_force_flush', 999);
+
+/**
+ * Add this function to a page to manually trigger rule flushing
+ * You can create a temporary admin page that calls this
+ */
+function wc_loyalty_debug_permalinks() {
+    global $wp_rewrite;
+    
+    echo '<h2>WC Loyalty Debug</h2>';
+    echo '<p>Flushing rewrite rules...</p>';
+    
+    // Add our endpoints
+    add_rewrite_endpoint('loyalty-points', EP_ROOT | EP_PAGES);
+    add_rewrite_endpoint('loyalty-rewards', EP_ROOT | EP_PAGES);
+    
+    // Flush rules
+    $wp_rewrite->flush_rules(true);
+    
+    echo '<p>Done. Rewrite rules flushed.</p>';
+    
+    // Show current rules for debugging
+    echo '<h3>Current Rewrite Rules:</h3>';
+    echo '<pre>';
+    print_r($wp_rewrite->rewrite_rules());
+    echo '</pre>';
+    
+    // Show endpoints
+    echo '<h3>Current Endpoints:</h3>';
+    echo '<pre>';
+    print_r($wp_rewrite->endpoints);
+    echo '</pre>';
+}
+
+// Optionally create a temporary admin page to run the debug function
+function wc_loyalty_add_debug_page() {
+    // Only for admin users
+    if (!current_user_can('manage_options')) return;
+    
+    add_submenu_page(
+        'woocommerce',
+        'Loyalty Debug',
+        'Loyalty Debug',
+        'manage_options',
+        'wc-loyalty-debug',
+        'wc_loyalty_debug_permalinks'
+    );
+}
+// Enable debug page
+add_action('admin_menu', 'wc_loyalty_add_debug_page', 99);

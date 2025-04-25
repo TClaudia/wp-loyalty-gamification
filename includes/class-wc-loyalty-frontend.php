@@ -99,16 +99,7 @@ class WC_Loyalty_Frontend {
     /**
      * Render loyalty interface on frontend.
      */
-    /**
- * Render loyalty interface on frontend.
- */
-/**
- * Render loyalty interface on frontend.
- */
-/**
- * Render loyalty interface on frontend.
- */
-public function render_loyalty_interface() {
+ public function render_loyalty_interface() {
     // Only show for logged-in users
     if (!is_user_logged_in()) {
         return;
@@ -133,6 +124,8 @@ public function render_loyalty_interface() {
     // Load template
     include WC_LOYALTY_PLUGIN_DIR . 'templates/loyalty-interface.php';
 }
+
+
     /**
  * Add tier badge to comment author.
  */

@@ -34,21 +34,24 @@ class WC_Loyalty_Rewards {
      * @param int $user_id User ID
      * @param int $points Current points
      */
-    public function check_reward_eligibility($user_id, $points) {
-        $reward_tiers = unserialize(get_option('wc_loyalty_reward_tiers'));
-        $claimed_rewards = $this->get_rewards_claimed($user_id);
-        
-        foreach ($reward_tiers as $tier => $reward) {
-            // If user has enough points and hasn't claimed this reward yet
-            if ($points >= $tier && !isset($claimed_rewards[$tier])) {
-                $this->process_reward($user_id, $tier, $reward);
-                
-                // Mark reward as claimed
-                $claimed_rewards[$tier] = current_time('mysql');
-                $this->update_rewards_claimed($user_id, $claimed_rewards);
-            }
+   public function check_reward_eligibility($user_id, $points) {
+    $reward_tiers = unserialize(get_option('wc_loyalty_reward_tiers'));
+    $claimed_rewards = $this->get_rewards_claimed($user_id);
+    
+    foreach ($reward_tiers as $tier => $reward) {
+        // If user has enough points and hasn't claimed this reward yet
+        if ($points >= $tier && !isset($claimed_rewards[$tier])) {
+            $this->process_reward($user_id, $tier, $reward);
+            
+            // Mark reward as claimed
+            $claimed_rewards[$tier] = current_time('mysql');
+            $this->update_rewards_claimed($user_id, $claimed_rewards);
+            
+            // Log this to help with debugging
+            error_log("Reward tier $tier claimed by user $user_id");
         }
     }
+}
     
     /**
      * Process reward.
@@ -57,40 +60,51 @@ class WC_Loyalty_Rewards {
      * @param int $tier Points tier
      * @param array $reward Reward data
      */
-    private function process_reward($user_id, $tier, $reward) {
+   private function process_reward($user_id, $tier, $reward) {
     $user = get_user_by('id', $user_id);
     
-    switch ($reward['type']) {
-        case 'discount':
-            // Generate coupon code
-            $coupon_code = $this->generate_discount_coupon($user_id, $reward['value']);
-            
-            // Store the coupon code for the user to display on site instead of email
-            $this->store_user_coupon($user_id, $coupon_code, $reward['value'], '+30 days');
-            
+    // Check if user already has an active coupon for this tier
+    $user_coupons = $this->get_user_coupons($user_id);
+    $tier_already_processed = false;
+    
+    foreach ($user_coupons as $coupon) {
+        if (isset($coupon['tier']) && $coupon['tier'] == $tier) {
+            $tier_already_processed = true;
             break;
-            
-        case 'free_shipping':
-            // Enable free shipping for next order
-            update_user_meta($user_id, '_wc_loyalty_free_shipping', 'yes');
-            
-            // Store notification to display on site
-            $this->store_user_notification($user_id, 'free_shipping', __('You\'ve earned free shipping on your next order!', 'wc-loyalty-gamification'));
-            
-            break;
-            
-        case 'free_product':
-            // Store notification to display on site
-            $this->store_user_notification($user_id, 'free_product', __('You\'ve earned a free product! See below to claim it.', 'wc-loyalty-gamification'));
-            
-            break;
+        }
+    }
+    
+    // Only proceed if this tier hasn't been processed yet
+    if (!$tier_already_processed) {
+        switch ($reward['type']) {
+            case 'discount':
+                // Generate coupon code
+                $coupon_code = $this->generate_discount_coupon($user_id, $reward['value']);
+                
+                // Store the coupon code with tier information
+                $this->store_user_coupon($user_id, $coupon_code, $reward['value'], '+30 days', $tier);
+                break;
+                
+            case 'free_shipping':
+                // Enable free shipping
+                update_user_meta($user_id, '_wc_loyalty_free_shipping', 'yes');
+                
+                // Store notification
+                $this->store_user_notification($user_id, 'free_shipping', __('You\'ve earned free shipping on your next order!', 'wc-loyalty-gamification'));
+                break;
+                
+            case 'free_product':
+                // Store notification
+                $this->store_user_notification($user_id, 'free_product', __('You\'ve earned a free product! See below to claim it.', 'wc-loyalty-gamification'));
+                break;
+        }
     }
 }
 
 /**
  * Store user coupon for frontend display
  */
-private function store_user_coupon($user_id, $coupon_code, $discount_value, $expiry = '+30 days') {
+private function store_user_coupon($user_id, $coupon_code, $discount_value, $expiry = '+30 days', $tier = null) {
     $user_coupons = get_user_meta($user_id, '_wc_loyalty_coupons', true);
     
     if (!is_array($user_coupons)) {
@@ -103,7 +117,8 @@ private function store_user_coupon($user_id, $coupon_code, $discount_value, $exp
         'discount' => $discount_value,
         'created' => current_time('mysql'),
         'expires' => date('Y-m-d H:i:s', strtotime($expiry)),
-        'is_used' => false
+        'is_used' => false,
+        'tier' => $tier  // Store tier information
     );
     
     // Save the updated coupons
@@ -197,36 +212,48 @@ public function get_user_notifications($user_id) {
      * @param string $reward_type Type of reward
      * @param array $data Additional data
      */
-    public function send_reward_email($email, $reward_type, $data = array()) {
-        $subject = '';
-        $message = '';
-        $headers = array('Content-Type: text/html; charset=UTF-8');
-        
-        // Get email template
-        ob_start();
-        include WC_LOYALTY_PLUGIN_DIR . 'templates/emails/reward-' . $reward_type . '.php';
-        $message = ob_get_clean();
-        
-        // Replace placeholders
-        $message = $this->replace_email_placeholders($message, $reward_type, $data);
-        
-        // Set subject based on reward type
-        switch ($reward_type) {
-            case 'discount':
-                $subject = sprintf(__('You\'ve earned a %d%% discount!', 'wc-loyalty-gamification'), $data['discount']);
-                break;
-                
-            case 'free_shipping':
-                $subject = __('You\'ve earned free shipping!', 'wc-loyalty-gamification');
-                break;
-                
-            case 'free_product':
-                $subject = __('You\'ve earned a free product!', 'wc-loyalty-gamification');
-                break;
-        }
-        
-        wp_mail($email, $subject, $message, $headers);
+   public function send_reward_email($email, $reward_type, $data = array()) {
+    error_log('Attempting to send reward email to: ' . $email . ' of type: ' . $reward_type);
+    
+    $subject = '';
+    $message = '';
+    $headers = array('Content-Type: text/html; charset=UTF-8');
+    
+    // Get email template
+    $template_path = WC_LOYALTY_PLUGIN_DIR . 'templates/emails/reward-' . $reward_type . '.php';
+    
+    if (!file_exists($template_path)) {
+        error_log('Email template not found: ' . $template_path);
+        return false;
     }
+    
+    ob_start();
+    include $template_path;
+    $message = ob_get_clean();
+    
+    // Replace placeholders
+    $message = $this->replace_email_placeholders($message, $reward_type, $data);
+    
+    // Set subject based on reward type
+    switch ($reward_type) {
+        case 'discount':
+            $subject = sprintf(__('You\'ve earned a %d%% discount!', 'wc-loyalty-gamification'), $data['discount']);
+            break;
+            
+        case 'free_shipping':
+            $subject = __('You\'ve earned free shipping!', 'wc-loyalty-gamification');
+            break;
+            
+        case 'free_product':
+            $subject = __('You\'ve earned a free product!', 'wc-loyalty-gamification');
+            break;
+    }
+    
+    $result = wp_mail($email, $subject, $message, $headers);
+    error_log('Email send result: ' . ($result ? 'Success' : 'Failed'));
+    
+    return $result;
+}
     
     /**
      * Replace email placeholders with actual data.
