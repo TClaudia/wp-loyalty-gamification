@@ -12,6 +12,16 @@ defined('ABSPATH') || exit;
 $user_id = get_current_user_id();
 $user_coupons = WC_Loyalty()->rewards->get_user_coupons($user_id);
 $user_notifications = WC_Loyalty()->rewards->get_user_notifications($user_id);
+
+// IMPORTANT: Always use the points functions
+$total_points = WC_Loyalty()->points->get_user_points($user_id);
+$display_points = WC_Loyalty()->points->get_user_display_points($user_id);
+$cycle_level = WC_Loyalty()->points->get_user_cycle_level($user_id);
+$reward_tiers = unserialize(get_option('wc_loyalty_reward_tiers', 'a:0:{}'));
+$claimed_rewards = WC_Loyalty()->rewards->get_rewards_claimed($user_id);
+
+// Get next tier based on display points (not total points)
+$next_tier = WC_Loyalty()->rewards->get_next_reward_tier($display_points, $reward_tiers);
 ?>
 
 <!-- Loyalty Button -->
@@ -27,18 +37,9 @@ $user_notifications = WC_Loyalty()->rewards->get_user_notifications($user_id);
         <h2><?php esc_html_e('Your Loyalty Points', 'wc-loyalty-gamification'); ?></h2>
         
         <?php
-        // Calculate proper display points
-        $highest_tier = !empty($reward_tiers) ? max(array_keys($reward_tiers)) : 2000;
-        $display_points = min($total_points, $highest_tier);
+        // ALWAYS calculate progress toward 2000 points, not next tier
+        $progress = ($display_points / 2000) * 100;
         
-        // Recalculate progress percentage
-        $progress = 0;
-        if ($next_tier !== null) {
-            $progress = ($total_points / $next_tier) * 100;
-        } elseif (!empty($reward_tiers)) {
-            // If user has passed all tiers, cap at 100%
-            $progress = 100;
-        }
         // Limit to 100%
         $progress = min($progress, 100);
         ?>
@@ -55,10 +56,17 @@ $user_notifications = WC_Loyalty()->rewards->get_user_notifications($user_id);
                 </div>
             <?php endif; ?>
             
-            <?php if ($next_tier) : ?>
+            <?php if ($display_points == 2000) : ?>
+                <div class="wc-loyalty-points-next wc-loyalty-free-product-alert">
+                    <?php esc_html_e('Congratulations! You\'ve reached 2000 points and can claim a free product!', 'wc-loyalty-gamification'); ?>
+                    <a href="<?php echo esc_url(wc_get_account_endpoint_url('loyalty-rewards') . '#claim-free-product'); ?>">
+                        <?php esc_html_e('Claim Now', 'wc-loyalty-gamification'); ?>
+                    </a>
+                </div>
+            <?php elseif ($next_tier) : ?>
                 <div class="wc-loyalty-points-next">
                     <?php 
-                    $points_needed = $next_tier - $total_points;
+                    $points_needed = $next_tier - $display_points;
                     printf(
                         esc_html__('You need %s more points to reach your next reward!', 'wc-loyalty-gamification'),
                         '<strong>' . esc_html($points_needed) . '</strong>'
@@ -67,7 +75,13 @@ $user_notifications = WC_Loyalty()->rewards->get_user_notifications($user_id);
                 </div>
             <?php else : ?>
                 <div class="wc-loyalty-points-next">
-                    <?php esc_html_e('Congratulations! You\'ve reached all reward tiers!', 'wc-loyalty-gamification'); ?>
+                    <?php 
+                    $points_to_free_product = 2000 - $display_points;
+                    printf(
+                        esc_html__('You need %s more points to reach 2000 and earn a free product!', 'wc-loyalty-gamification'),
+                        '<strong>' . esc_html($points_to_free_product) . '</strong>'
+                    ); 
+                    ?>
                 </div>
             <?php endif; ?>
         </div>
@@ -120,10 +134,15 @@ $user_notifications = WC_Loyalty()->rewards->get_user_notifications($user_id);
             <?php if (!empty($reward_tiers)) : ?>
                 <ul>
                     <?php foreach ($reward_tiers as $tier => $reward) : 
-                        $is_achieved = $total_points >= $tier;
+                        $is_achieved = $display_points >= $tier;
                         $is_claimed = isset($claimed_rewards[$tier]);
                         $class = $is_achieved ? 'achieved' : '';
                         $class .= $is_claimed ? ' claimed' : '';
+                        
+                        // Highlight the free product tier at 2000 points
+                        if ($tier == 2000 && $reward['type'] == 'free_product' && $display_points == 2000 && !$is_claimed) {
+                            $class .= ' highlight-reward';
+                        }
                     ?>
                         <li class="<?php echo esc_attr($class); ?>">
                             <span class="tier-points"><?php echo esc_html($tier); ?> <?php esc_html_e('points', 'wc-loyalty-gamification'); ?></span>
@@ -149,6 +168,10 @@ $user_notifications = WC_Loyalty()->rewards->get_user_notifications($user_id);
                             
                             <?php if ($is_claimed) : ?>
                                 <span class="claimed-label"><?php esc_html_e('Claimed', 'wc-loyalty-gamification'); ?></span>
+                            <?php elseif ($tier == 2000 && $reward['type'] == 'free_product' && $display_points == 2000) : ?>
+                                <a href="<?php echo esc_url(wc_get_account_endpoint_url('loyalty-rewards') . '#claim-free-product'); ?>" class="claim-now-label">
+                                    <?php esc_html_e('Claim Now', 'wc-loyalty-gamification'); ?>
+                                </a>
                             <?php endif; ?>
                         </li>
                     <?php endforeach; ?>

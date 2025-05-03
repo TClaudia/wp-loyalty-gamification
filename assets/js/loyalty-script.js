@@ -25,6 +25,11 @@
                 e.preventDefault();
                 modal.fadeIn(300);
                 WCLoyalty.initCircleProgress();
+                
+                // Manually bind copy buttons again
+                setTimeout(function(){
+                    WCLoyalty.bindCopyButtons();
+                }, 500);
             });
             
             // Close modal when clicking the close button
@@ -66,6 +71,12 @@
                 lineCap: 'round'
             });
 
+            // Make sure the canvas doesn't block clicks
+            $('.wc-loyalty-progress-circle canvas').css({
+                'pointer-events': 'none',
+                'position': 'absolute'
+            });
+
             // Add animation effect to points counter
             var pointsCount = $('.wc-loyalty-points-count');
             var targetPoints = parseInt(pointsCount.text(), 10);
@@ -84,7 +95,7 @@
 
         // Initialize claim product functionality
         initClaimProduct: function() {
-            $('.claim-free-product').on('click', function(e) {
+            $(document).on('click', '.claim-free-product', function(e) {
                 e.preventDefault();
                 
                 var $button = $(this);
@@ -134,38 +145,62 @@
             });
         },
         
-        // Initialize coupon functionality
-        initCoupons: function() {
-            // Handle copy coupon code
-            $(document).on('click', '.wc-loyalty-copy-code', function(e) {
-                e.preventDefault();
-                
-                var couponCode = $(this).data('code');
+        // Bind copy buttons directly
+        bindCopyButtons: function() {
+            $('.wc-loyalty-copy-code').each(function() {
                 var $button = $(this);
                 
-                // Create a temporary input element
-                var $temp = $("<input>");
-                $("body").append($temp);
-                $temp.val(couponCode).select();
-                
-                // Copy the text
-                document.execCommand("copy");
-                $temp.remove();
-                
-                // Change button text to indicate copied
-                var originalText = $button.text();
-                $button.text('Copied!');
-                
-                // Reset button text after a delay
-                setTimeout(function() {
-                    $button.text(originalText);
-                }, 2000);
-                
-                // Show notification
-                WCLoyalty.showNotification('Coupon code copied to clipboard!', 'success');
+                $button.off('click').on('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    var couponCode = $button.data('code');
+                    var originalText = $button.text();
+                    
+                    // Simple copy method that works in most browsers
+                    WCLoyalty.simpleCopyToClipboard(couponCode);
+                    
+                    // Update button text
+                    $button.text('Copied!');
+                    
+                    // Show notification
+                    WCLoyalty.showNotification('Coupon code copied to clipboard!', 'success');
+                    
+                    // Reset button text after a delay
+                    setTimeout(function() {
+                        $button.text(originalText);
+                    }, 2000);
+                });
             });
+        },
+        
+        // A very simple copy method that works in most browsers
+        simpleCopyToClipboard: function(text) {
+            // Create textarea
+            var textarea = document.createElement('textarea');
+            textarea.value = text;
+            
+            // Make it not visible
+            textarea.style.position = 'absolute';
+            textarea.style.left = '-9999px';
+            textarea.style.top = '0';
+            textarea.setAttribute('readonly', '');
+            
+            // Add to body, select, copy, remove
+            document.body.appendChild(textarea);
+            textarea.select();
+            textarea.setSelectionRange(0, 99999);
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+        },
+        
+        // Initialize coupon functionality
+        initCoupons: function() {
+            // Direct binding of copy buttons
+            this.bindCopyButtons();
             
             // Handle apply loyalty coupon
+            $(document).off('click', '.apply-loyalty-coupon');
             $(document).on('click', '.apply-loyalty-coupon', function(e) {
                 e.preventDefault();
                 
@@ -186,25 +221,27 @@
                     success: function(response) {
                         if (response.success) {
                             // Show success message
-                            alert(response.data.message);
+                            WCLoyalty.showNotification(response.data.message, 'success');
                             
                             // Refresh the page
-                            window.location.reload();
+                            setTimeout(function() {
+                                window.location.reload();
+                            }, 1500);
                         } else {
                             // Show error message
-                            alert(response.data.message || 'Failed to apply coupon');
+                            WCLoyalty.showNotification(response.data.message || 'Failed to apply coupon', 'error');
                             $button.prop('disabled', false).text('Apply');
                         }
                     },
                     error: function() {
                         // Show error message
-                        alert('An error occurred. Please try again.');
+                        WCLoyalty.showNotification('An error occurred. Please try again.', 'error');
                         $button.prop('disabled', false).text('Apply');
                     }
                 });
             });
         },
-        
+                
         // Show notification
         showNotification: function(message, type) {
             // Remove any existing notifications
@@ -234,6 +271,11 @@
     // Initialize when document is ready
     $(document).ready(function() {
         WCLoyalty.init();
+        
+        // Rebind copy buttons after page load
+        setTimeout(function(){
+            WCLoyalty.bindCopyButtons();
+        }, 500);
     });
 
 })(jQuery);

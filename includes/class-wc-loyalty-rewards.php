@@ -21,6 +21,9 @@ class WC_Loyalty_Rewards {
         // Check reward eligibility after points update
         add_action('wc_loyalty_points_updated', array($this, 'check_reward_eligibility'), 10, 2);
         
+        // Special handler for when user reaches exactly 2000 points
+        add_action('wc_loyalty_reached_2000_points', array($this, 'handle_free_product_eligibility'));
+        
         // Apply free shipping if user has earned it
         add_filter('woocommerce_package_rates', array($this, 'apply_free_shipping'), 100, 2);
         
@@ -32,30 +35,65 @@ class WC_Loyalty_Rewards {
     }
     
     /**
-     * Check reward eligibility.
-     *
+     * Handle free product eligibility when user reaches 2000 points
+     * 
      * @param int $user_id User ID
-     * @param int $points Current points
      */
-    public function check_reward_eligibility($user_id, $points) {
+    public function handle_free_product_eligibility($user_id) {
+        // Make sure we have a 2000-point tier for free product
         $reward_tiers = unserialize(get_option('wc_loyalty_reward_tiers'));
-        $claimed_rewards = $this->get_rewards_claimed($user_id);
         
-        foreach ($reward_tiers as $tier => $reward) {
-            // If user has enough points and hasn't claimed this reward yet
-            if ($points >= $tier && !isset($claimed_rewards[$tier])) {
-                $this->process_reward($user_id, $tier, $reward);
-                
-                // Mark reward as claimed
-                $claimed_rewards[$tier] = current_time('mysql');
-                $this->update_rewards_claimed($user_id, $claimed_rewards);
-                
-                // Log this to help with debugging
-                error_log("Reward tier $tier claimed by user $user_id");
+        // Check if 2000-point tier exists and is set to free product
+        if (!isset($reward_tiers[2000]) || $reward_tiers[2000]['type'] !== 'free_product') {
+            // Create it if it doesn't exist
+            $reward_tiers[2000] = array('type' => 'free_product', 'value' => true);
+            update_option('wc_loyalty_reward_tiers', serialize($reward_tiers));
+            error_log('Created 2000-point free product tier');
+        }
+        
+        // Add a notification about free product eligibility
+        $this->store_user_notification(
+            $user_id, 
+            'free_product', 
+            __('Congratulations! You\'ve reached 2000 points and can claim a free product!', 'wc-loyalty-gamification')
+        );
+        
+        // Log this event
+        error_log("User $user_id has reached 2000 points and is eligible for a free product");
+    }
+    
+    /**
+ * Check reward eligibility.
+ *
+ * @param int $user_id User ID
+ * @param int $points Current points
+ */
+public function check_reward_eligibility($user_id, $points) {
+    $reward_tiers = unserialize(get_option('wc_loyalty_reward_tiers'));
+    $claimed_rewards = $this->get_rewards_claimed($user_id);
+    $display_points = WC_Loyalty()->points->get_user_display_points($user_id);
+    
+    foreach ($reward_tiers as $tier => $reward) {
+        // Verificăm atât punctele totale cât și punctele de afișare
+        // Asigurăm activarea recompensei când punctele depășesc tier-ul
+        if ($tier <= $points || $tier <= $display_points) {
+            // Dacă această recompensă nu a fost deja solicitată
+            if (!isset($claimed_rewards[$tier])) {
+                // Procesează automat toate recompensele, cu excepția produsului gratuit care necesită alegere
+                if ($reward['type'] !== 'free_product' || $tier !== 2000) {
+                    $this->process_reward($user_id, $tier, $reward);
+                    
+                    // Marchează recompensa ca solicitată
+                    $claimed_rewards[$tier] = current_time('mysql');
+                    $this->update_rewards_claimed($user_id, $claimed_rewards);
+                    
+                    // Log pentru debugging
+                    error_log("Reward tier $tier automatically claimed by user $user_id");
+                }
             }
         }
     }
-    
+}
     /**
      * Handle when a coupon is applied.
      * 
@@ -160,16 +198,28 @@ class WC_Loyalty_Rewards {
             $notifications = array();
         }
         
-        // Add the new notification
-        $notifications[] = array(
-            'type' => $type,
-            'message' => $message,
-            'created' => current_time('mysql'),
-            'is_read' => false
-        );
+        // Check if a similar notification already exists
+        $exists = false;
+        foreach ($notifications as $notification) {
+            if ($notification['type'] == $type && $notification['message'] == $message) {
+                $exists = true;
+                break;
+            }
+        }
         
-        // Save the updated notifications
-        update_user_meta($user_id, '_wc_loyalty_notifications', $notifications);
+        // Only add if it doesn't exist
+        if (!$exists) {
+            // Add the new notification
+            $notifications[] = array(
+                'type' => $type,
+                'message' => $message,
+                'created' => current_time('mysql'),
+                'is_read' => false
+            );
+            
+            // Save the updated notifications
+            update_user_meta($user_id, '_wc_loyalty_notifications', $notifications);
+        }
     }
 
     /**
@@ -222,7 +272,7 @@ class WC_Loyalty_Rewards {
             update_post_meta($coupon_id, 'individual_use', 'yes');
             update_post_meta($coupon_id, 'usage_limit', '1');
             update_post_meta($coupon_id, 'expiry_date', date('Y-m-d', strtotime('+30 days')));
-            update_post_meta($coupon_id, 'apply_before_tax', 'yes');
+            update_post_meta($coupon_id, 'apply_before_tax', 'no'); // Changed to 'no' for better discount calculation
             update_post_meta($coupon_id, 'free_shipping', 'no');
             update_post_meta($coupon_id, 'customer_email', array($user->user_email));
         }
@@ -308,7 +358,7 @@ class WC_Loyalty_Rewards {
                 break;
                 
             case 'free_product':
-                $placeholders['{free_product_url}'] = wc_get_account_endpoint_url('loyalty-points') . '#claim-free-product';
+                $placeholders['{free_product_url}'] = wc_get_account_endpoint_url('loyalty-rewards') . '#claim-free-product';
                 break;
         }
         
@@ -368,6 +418,13 @@ class WC_Loyalty_Rewards {
         $next_tier = null;
         $next_points = PHP_INT_MAX;
         
+        // First check if we're close to 2000 (the special free product tier)
+        if ($current_points < 2000 && !isset($reward_tiers[2000])) {
+            // If no 2000 tier exists but we're below 2000, use that as the target
+            $next_tier = 2000;
+            $next_points = 2000;
+        }
+        
         foreach ($reward_tiers as $tier => $reward) {
             if ($tier > $current_points && $tier < $next_points) {
                 $next_tier = $tier;
@@ -417,24 +474,43 @@ class WC_Loyalty_Rewards {
         }
         
         $user_id = get_current_user_id();
-        $points = WC_Loyalty()->points->get_user_points($user_id);
+        $total_points = WC_Loyalty()->points->get_user_points($user_id);
+        $display_points = WC_Loyalty()->points->get_user_display_points($user_id);
         $reward_tiers = unserialize(get_option('wc_loyalty_reward_tiers'));
-        $next_tier = $this->get_next_reward_tier($points, $reward_tiers);
+        
+        // Special case for exactly 2000 points - free product notification
+        if ($display_points == 2000) {
+            wc_print_notice(
+                sprintf(
+                    __('Congratulations! You\'ve reached 2000 points and can claim a free product! <a href="%s">Claim Now</a>', 'wc-loyalty-gamification'),
+                    wc_get_account_endpoint_url('loyalty-rewards') . '#claim-free-product'
+                ),
+                'success'
+            );
+            return;
+        }
+        
+        // Normal next tier calculation
+        $next_tier = $this->get_next_reward_tier($display_points, $reward_tiers);
         
         if ($next_tier) {
-            $points_needed = $next_tier - $points;
+            $points_needed = $next_tier - $display_points;
             $reward_type = '';
             
-            switch ($reward_tiers[$next_tier]['type']) {
-                case 'discount':
-                    $reward_type = sprintf(__('%d%% discount', 'wc-loyalty-gamification'), $reward_tiers[$next_tier]['value']);
-                    break;
-                case 'free_shipping':
-                    $reward_type = __('free shipping', 'wc-loyalty-gamification');
-                    break;
-                case 'free_product':
-                    $reward_type = __('a free product', 'wc-loyalty-gamification');
-                    break;
+            if ($next_tier == 2000) {
+                $reward_type = __('a free product', 'wc-loyalty-gamification');
+            } else if (isset($reward_tiers[$next_tier])) {
+                switch ($reward_tiers[$next_tier]['type']) {
+                    case 'discount':
+                        $reward_type = sprintf(__('%d%% discount', 'wc-loyalty-gamification'), $reward_tiers[$next_tier]['value']);
+                        break;
+                    case 'free_shipping':
+                        $reward_type = __('free shipping', 'wc-loyalty-gamification');
+                        break;
+                    case 'free_product':
+                        $reward_type = __('a free product', 'wc-loyalty-gamification');
+                        break;
+                }
             }
             
             wc_print_notice(
@@ -470,5 +546,51 @@ class WC_Loyalty_Rewards {
             // Save updated coupons
             update_user_meta($user_id, '_wc_loyalty_coupons', $user_coupons);
         }
+    }
+    
+    /**
+     * Check if a user can claim a free product.
+     * 
+     * @param int $user_id User ID
+     * @return bool True if eligible
+     */
+    public function can_claim_free_product($user_id) {
+        // Check if display points are exactly 2000
+        $display_points = WC_Loyalty()->points->get_user_display_points($user_id);
+        
+        if ($display_points == 2000) {
+            // Verify we haven't already claimed this reward in this cycle
+            $claimed_rewards = $this->get_rewards_claimed($user_id);
+            $cycle_level = WC_Loyalty()->points->get_user_cycle_level($user_id);
+            
+            // Check if we've claimed the 2000-point reward in this cycle
+            $claim_key = '2000_cycle_' . $cycle_level;
+            
+            if (!isset($claimed_rewards[$claim_key])) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Mark a free product as claimed for the current cycle.
+     * 
+     * @param int $user_id User ID
+     * @return bool Success
+     */
+    public function mark_free_product_claimed($user_id) {
+        $claimed_rewards = $this->get_rewards_claimed($user_id);
+        $cycle_level = WC_Loyalty()->points->get_user_cycle_level($user_id);
+        
+        // Create a unique key for this cycle
+        $claim_key = '2000_cycle_' . $cycle_level;
+        
+        // Mark as claimed
+        $claimed_rewards[$claim_key] = current_time('mysql');
+        
+        // Save claimed rewards
+        return $this->update_rewards_claimed($user_id, $claimed_rewards);
     }
 }
