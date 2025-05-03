@@ -448,3 +448,152 @@ function wc_loyalty_add_debug_page() {
 // Enable debug page
 add_action('admin_menu', 'wc_loyalty_add_debug_page', 99);
 
+
+/**
+ * Adaugă o pagină scurtă cu produsele gratuite disponibile
+ */
+function wc_loyalty_display_free_products_page() {
+    if (!is_user_logged_in()) {
+        return;
+    }
+    
+    $free_products = WC_Loyalty()->get_free_products();
+    
+    if (empty($free_products)) {
+        return;
+    }
+    
+    // Adaugă shortcode pentru pagina de produse gratuite
+    add_shortcode('wc_loyalty_free_products', function() use ($free_products) {
+        $output = '<div class="wc-loyalty-free-products-page">';
+        $output .= '<h2>' . __('Free Products Available with Loyalty Coupon', 'wc-loyalty-gamification') . '</h2>';
+        $output .= '<p>' . __('When you reach 2000 loyalty points, you\'ll receive a coupon that can be used to get one of these products for free:', 'wc-loyalty-gamification') . '</p>';
+        
+        $output .= '<div class="wc-loyalty-free-products-grid">';
+        
+        foreach ($free_products as $product) {
+            $output .= '<div class="wc-loyalty-free-product-item">';
+            $output .= '<a href="' . esc_url($product['permalink']) . '">' . $product['image'] . '</a>';
+            $output .= '<h3><a href="' . esc_url($product['permalink']) . '">' . esc_html($product['name']) . '</a></h3>';
+            $output .= '<div class="wc-loyalty-free-product-price">' . wc_price($product['price']) . ' ' . __('or FREE with coupon', 'wc-loyalty-gamification') . '</div>';
+            $output .= '</div>';
+        }
+        
+        $output .= '</div>';
+        $output .= '</div>';
+        
+        return $output;
+    });
+}
+
+// Inițializează pagina de produse gratuite
+add_action('init', 'wc_loyalty_display_free_products_page');
+
+// Marchează cuponul ca utilizat după finalizarea comenzii
+add_action('woocommerce_order_status_processing', function($order_id) {
+    $order = wc_get_order($order_id);
+    $coupons_used = $order->get_coupon_codes();
+    
+    foreach ($coupons_used as $coupon_code) {
+        $coupon = new WC_Coupon($coupon_code);
+        $is_free_product_coupon = get_post_meta($coupon->get_id(), '_wc_loyalty_free_product_coupon', true);
+        
+        if ($is_free_product_coupon === 'yes') {
+            $user_id = get_post_meta($coupon->get_id(), '_wc_loyalty_user_id', true);
+            
+            if ($user_id) {
+                // Marchează cuponul ca utilizat
+                WC_Loyalty()->rewards->mark_coupon_as_used($coupon_code, $user_id);
+                
+                // Adaugă notă în comandă
+                $order->add_order_note(__('Free product loyalty coupon used for this order.', 'wc-loyalty-gamification'));
+                
+                // Marchează recompensa ca fiind solicitată
+                $cycle_level = WC_Loyalty()->points->get_user_cycle_level($user_id);
+                $claimed_rewards = WC_Loyalty()->rewards->get_rewards_claimed($user_id);
+                $claim_key = '2000_cycle_' . $cycle_level;
+                
+                if (!isset($claimed_rewards[$claim_key])) {
+                    $claimed_rewards[$claim_key] = current_time('mysql');
+                    WC_Loyalty()->rewards->update_rewards_claimed($user_id, $claimed_rewards);
+                }
+                
+                // Adaugă notificare pentru utilizator
+                WC_Loyalty()->rewards->store_user_notification(
+                    $user_id, 
+                    'success', 
+                    __('You\'ve successfully claimed your free product!', 'wc-loyalty-gamification')
+                );
+            }
+        }
+    }
+});
+
+// Adaugă mesaj în coș pentru produsele eligibile
+add_filter('woocommerce_get_price_html', function($price_html, $product) {
+    if (!is_user_logged_in()) {
+        return $price_html;
+    }
+    
+    $user_id = get_current_user_id();
+    $user_coupons = WC_Loyalty()->rewards->get_user_coupons($user_id);
+    $has_free_product_coupon = false;
+    
+    foreach ($user_coupons as $coupon) {
+        if (isset($coupon['type']) && $coupon['type'] === 'free_product' && !$coupon['is_used']) {
+            $has_free_product_coupon = true;
+            break;
+        }
+    }
+    
+    if ($has_free_product_coupon) {
+        // Verifică dacă produsul este în lista de produse gratuite
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'wc_loyalty_free_products';
+        $free_products = $wpdb->get_col("SELECT product_id FROM $table_name");
+        
+        if (in_array($product->get_id(), $free_products)) {
+            return $price_html . ' <span class="wc-loyalty-free-eligible">' . __('or FREE with your loyalty coupon!', 'wc-loyalty-gamification') . '</span>';
+        }
+    }
+    
+    return $price_html;
+}, 10, 2);
+
+// Adaugă notificare în pagina de produs pentru produsele eligibile
+add_action('woocommerce_before_single_product_summary', function() {
+    if (!is_user_logged_in()) {
+        return;
+    }
+    
+    global $product;
+    $user_id = get_current_user_id();
+    $user_coupons = WC_Loyalty()->rewards->get_user_coupons($user_id);
+    $free_product_coupon = null;
+    
+    foreach ($user_coupons as $coupon) {
+        if (isset($coupon['type']) && $coupon['type'] === 'free_product' && !$coupon['is_used']) {
+            $free_product_coupon = $coupon;
+            break;
+        }
+    }
+    
+    if ($free_product_coupon) {
+        // Verifică dacă produsul este în lista de produse gratuite
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'wc_loyalty_free_products';
+        $free_products = $wpdb->get_col("SELECT product_id FROM $table_name");
+        
+        if (in_array($product->get_id(), $free_products)) {
+            echo '<div class="wc-loyalty-free-product-notice">';
+            echo '<p>' . esc_html__('This product is available FREE with your loyalty coupon!', 'wc-loyalty-gamification') . '</p>';
+            echo '<p>' . sprintf(
+                esc_html__('Use coupon code: %s at checkout to get this product for free.', 'wc-loyalty-gamification'),
+                '<strong>' . esc_html($free_product_coupon['code']) . '</strong>'
+            ) . '</p>';
+            echo '<button class="wc-loyalty-copy-code" data-code="' . esc_attr($free_product_coupon['code']) . '">' . esc_html__('Copy Code', 'wc-loyalty-gamification') . '</button>';
+            echo '</div>';
+        }
+    }
+});
+

@@ -195,52 +195,7 @@
         },
         
         // Initialize coupon functionality
-        initCoupons: function() {
-            // Direct binding of copy buttons
-            this.bindCopyButtons();
-            
-            // Handle apply loyalty coupon
-            $(document).off('click', '.apply-loyalty-coupon');
-            $(document).on('click', '.apply-loyalty-coupon', function(e) {
-                e.preventDefault();
-                
-                var $button = $(this);
-                var couponCode = $button.data('coupon');
-                
-                // Disable button and show loading state
-                $button.prop('disabled', true).text('Applying...');
-                
-                $.ajax({
-                    type: 'POST',
-                    url: wcLoyaltyData.ajaxurl,
-                    data: {
-                        action: 'apply_loyalty_coupon',
-                        nonce: wcLoyaltyData.nonce,
-                        coupon_code: couponCode
-                    },
-                    success: function(response) {
-                        if (response.success) {
-                            // Show success message
-                            WCLoyalty.showNotification(response.data.message, 'success');
-                            
-                            // Refresh the page
-                            setTimeout(function() {
-                                window.location.reload();
-                            }, 1500);
-                        } else {
-                            // Show error message
-                            WCLoyalty.showNotification(response.data.message || 'Failed to apply coupon', 'error');
-                            $button.prop('disabled', false).text('Apply');
-                        }
-                    },
-                    error: function() {
-                        // Show error message
-                        WCLoyalty.showNotification('An error occurred. Please try again.', 'error');
-                        $button.prop('disabled', false).text('Apply');
-                    }
-                });
-            });
-        },
+        initCoupons
                 
         // Show notification
         showNotification: function(message, type) {
@@ -277,5 +232,8 @@
             WCLoyalty.bindCopyButtons();
         }, 500);
     });
+
+    
+
 
 })(jQuery);

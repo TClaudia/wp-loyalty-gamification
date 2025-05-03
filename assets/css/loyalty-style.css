@@ -1035,4 +1035,62 @@
             width: 100%;
           }
         }
+        
+
+                /* Stiluri pentru cupoanele de produs gratuit */
+                .wc-loyalty-coupon.free-product-coupon {
+                  background: linear-gradient(135deg, #28a745, #20c997);
+                  border-left: 5px solid #28a745;
+                }
+        
+                .wc-loyalty-coupon.free-product-coupon .wc-loyalty-coupon-discount {
+                  font-size: 24px;
+                  font-weight: 700;
+                  color: white;
+                }
+        
+                .wc-loyalty-coupon.free-product-coupon .wc-loyalty-coupon-info {
+                  margin: 10px 0;
+                  font-size: 14px;
+                  opacity: 0.9;
+                }
+        
+                .wc-loyalty-coupon.free-product-coupon .wc-loyalty-copy-code {
+                  background-color: #28a745;
+                }
+        
+                .wc-loyalty-coupon.free-product-coupon .wc-loyalty-copy-code:hover {
+                  background-color: #218838;
+                }
+        
+                /* Notificări îmbunătățite */
+                .wc-loyalty-notification-popup.wc-loyalty-notification-free_product {
+                  border-left-color: #28a745;
+                }
+        
+                .wc-loyalty-free-product-alert {
+                  background-color: #f0fff4;
+                  border: 1px solid #c3e6cb;
+                  border-radius: 4px;
+                  padding: 10px 15px;
+                  color: #155724;
+                  margin-top: 15px;
+                }
+        
+                .wc-loyalty-free-product-alert a {
+                  display: inline-block;
+                  background-color: #28a745;
+                  color: white;
+                  padding: 5px 15px;
+                  border-radius: 4px;
+                  text-decoration: none;
+                  margin-left: 10px;
+                  font-weight: 600;
+                  transition: background-color 0.2s;
+                }
+        
+                .wc-loyalty-free-product-alert a:hover {
+                  background-color: #218838;
+                  text-decoration: none;
+                }
 }

@@ -126,73 +126,280 @@ class WC_Loyalty_Points {
      * @param string $description Points description
      * @return bool Success or failure
      */
-    public function add_points($user_id, $points, $description = '') {
-        global $wpdb;
+  /**
+ * Constructor pentru a adăuga hook-urile necesare
+ */
+public function __construct() {
+    // Verifică eligibilitatea pentru recompense după actualizarea punctelor
+    add_action('wc_loyalty_points_updated', array($this, 'check_reward_eligibility'), 10, 2);
+    
+    // Handler special pentru când utilizatorul atinge exact 2000 de puncte
+    add_action('wc_loyalty_reached_2000_points', array($this, 'handle_free_product_eligibility'));
+    
+    // Aplică transport gratuit dacă utilizatorul l-a câștigat
+    add_filter('woocommerce_package_rates', array($this, 'apply_free_shipping'), 100, 2);
+    
+    // Adaugă notificare pentru recompensa următoare
+    add_action('woocommerce_before_single_product', array($this, 'product_reward_notice'));
+    
+    // Marchează cuponul ca utilizat când este aplicat
+    add_action('woocommerce_applied_coupon', array($this, 'handle_applied_coupon'));
+    
+    // Adaugă validarea pentru cupoanele de produs gratuit
+    add_filter('woocommerce_coupon_is_valid', array($this, 'validate_loyalty_free_product_coupon'), 10, 3);
+}
+
+/**
+ * Validează cuponul pentru produs gratuit
+ */
+public function validate_loyalty_free_product_coupon($valid, $coupon, $discount) {
+    // Verifică dacă este un cupon pentru produs gratuit
+    $is_free_product_coupon = get_post_meta($coupon->get_id(), '_wc_loyalty_free_product_coupon', true);
+    
+    if ($is_free_product_coupon === 'yes') {
+        $items_count = 0;
+        $product_ids = $coupon->get_product_ids();
+        $valid_product_found = false;
         
-        $table_name = $wpdb->prefix . 'wc_loyalty_points';
-        $current_points = $this->get_user_points($user_id);
-        
-        error_log('POINTS DEBUG: Adding ' . $points . ' points for user ' . $user_id . '. Current total: ' . $current_points);
-        
-        $new_points = $current_points + $points;
-        
-        error_log('POINTS DEBUG: New points total would be: ' . $new_points);
-        
-        // Get current history
-        $points_history = $this->get_points_history($user_id);
-        
-        // Add new entry to history
-        $points_history[] = array(
-            'date' => current_time('mysql'),
-            'points' => $points,
-            'description' => $description
-        );
-        
-        // Check if points have reached or exceeded 2000
-        if ($new_points >= 2000) {
-            // Trigger the reward before resetting
-            do_action('wc_loyalty_reached_2000_points', $user_id);
+        // Verifică produsele din coș
+        foreach (WC()->cart->get_cart() as $cart_item_key => $cart_item) {
+            $items_count++;
+            $product_id = $cart_item['product_id'];
             
-            // Add reset entry to history
-            $points_history[] = array(
-                'date' => current_time('mysql'),
-                'points' => -2000, // Reset by subtracting 2000 points
-                'description' => __('Points reset after reaching 2000 points threshold', 'wc-loyalty-gamification')
-            );
-            
-            // Reset to remainder instead of zero
-            $new_points = $new_points - 2000;
-            
-            error_log('Points reset triggered. Points reset to: ' . $new_points);
-            
-            // Increment cycle level in user meta
-            $current_cycle = intval(get_user_meta($user_id, '_wc_loyalty_cycle_level', true));
-            update_user_meta($user_id, '_wc_loyalty_cycle_level', $current_cycle + 1);
+            // Verifică dacă produsul este în lista de produse eligibile
+            if (in_array($product_id, $product_ids)) {
+                $valid_product_found = true;
+            }
         }
         
-        // Update or insert user points
-        $result = $wpdb->replace(
-            $table_name,
-            array(
-                'user_id' => $user_id,
-                'points' => $new_points,
-                'points_history' => serialize($points_history),
-                'update_date' => current_time('mysql')
-            ),
-            array('%d', '%d', '%s', '%s')
-        );
-        
-        error_log('Final points after save: ' . $new_points . ', Result: ' . ($result ? 'Success' : 'Failed'));
-        
-        if ($result) {
-            // Trigger action after points update
-            do_action('wc_loyalty_points_updated', $user_id, $new_points);
-            return true;
+        // Cuponul este valid doar dacă există un singur produs în coș
+        if ($items_count !== 1) {
+            wc_add_notice(__('The free product coupon can only be used with a single product from the eligible products list.', 'wc-loyalty-gamification'), 'error');
+            return false;
         }
         
+        // Și dacă produsul este din lista de produse eligibile
+        if (!$valid_product_found) {
+            wc_add_notice(__('This coupon is only valid for selected products.', 'wc-loyalty-gamification'), 'error');
+            return false;
+        }
+    }
+    
+    return $valid;
+}
+
+/**
+ * Handler pentru eligibilitatea la produs gratuit când utilizatorul atinge 2000 de puncte
+ */
+public function handle_free_product_eligibility($user_id) {
+    // Asigură-te că avem un tier de 2000 de puncte pentru produs gratuit
+    $reward_tiers = unserialize(get_option('wc_loyalty_reward_tiers'));
+    
+    // Verifică dacă există tier-ul de 2000 de puncte și este setat la produs gratuit
+    if (!isset($reward_tiers[2000]) || $reward_tiers[2000]['type'] !== 'free_product') {
+        // Creează-l dacă nu există
+        $reward_tiers[2000] = array('type' => 'free_product', 'value' => true);
+        update_option('wc_loyalty_reward_tiers', serialize($reward_tiers));
+    }
+    
+    // Generează cupon pentru produsul gratuit
+    $coupon_code = $this->generate_free_product_coupon($user_id);
+    
+    if ($coupon_code) {
+        // Stochează codul cuponului
+        $this->store_user_coupon(
+            $user_id, 
+            $coupon_code, 
+            100, // 100% reducere
+            '+30 days', 
+            2000, // tier
+            'free_product' // tip special de cupon
+        );
+        
+        // Stochează notificarea
+        $this->store_user_notification(
+            $user_id, 
+            'free_product', 
+            __('You\'ve earned a free product! Use the coupon code to claim one of our selected products.', 'wc-loyalty-gamification')
+        );
+        
+        // Marchează recompensa ca fiind disponibilă pentru ciclul curent
+        $cycle_level = WC_Loyalty()->points->get_user_cycle_level($user_id);
+        $free_product_key = 'free_product_available_cycle_' . $cycle_level;
+        update_user_meta($user_id, $free_product_key, 'yes');
+        
+        error_log("Utilizatorul $user_id a primit cupon pentru produs gratuit: $coupon_code");
+    }
+}
+
+/**
+ * Generează cupon pentru produs gratuit
+ */
+private function generate_free_product_coupon($user_id) {
+    $user = get_user_by('id', $user_id);
+    $coupon_code = 'FREEPROD' . strtoupper(substr(md5(uniqid(mt_rand(), true)), 0, 8));
+    
+    // Obține produsele gratuite disponibile
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'wc_loyalty_free_products';
+    $free_products = $wpdb->get_col("SELECT product_id FROM $table_name");
+    
+    if (empty($free_products)) {
+        error_log('No free products defined for free product coupon');
         return false;
     }
     
+    $coupon = array(
+        'post_title' => $coupon_code,
+        'post_content' => __('Loyalty program free product coupon', 'wc-loyalty-gamification'),
+        'post_status' => 'publish',
+        'post_author' => 1,
+        'post_type' => 'shop_coupon'
+    );
+    
+    $coupon_id = wp_insert_post($coupon);
+    
+    if ($coupon_id) {
+        // Configurează datele cuponului
+        update_post_meta($coupon_id, 'discount_type', 'percent');
+        update_post_meta($coupon_id, 'coupon_amount', 100); // 100% reducere
+        update_post_meta($coupon_id, 'individual_use', 'yes');
+        update_post_meta($coupon_id, 'usage_limit', '1');
+        update_post_meta($coupon_id, 'expiry_date', date('Y-m-d', strtotime('+30 days')));
+        update_post_meta($coupon_id, 'apply_before_tax', 'yes');
+        update_post_meta($coupon_id, 'free_shipping', 'no');
+        update_post_meta($coupon_id, 'product_ids', implode(',', $free_products)); // Limitează la produsele gratuite
+        update_post_meta($coupon_id, 'customer_email', array($user->user_email));
+        update_post_meta($coupon_id, 'minimum_amount', '0');
+        update_post_meta($coupon_id, 'maximum_amount', '');
+        update_post_meta($coupon_id, 'exclude_sale_items', 'no');
+        
+        // Adaugă și metadate speciale pentru a marca ca fiind cupon pentru produs gratuit
+        update_post_meta($coupon_id, '_wc_loyalty_free_product_coupon', 'yes');
+        update_post_meta($coupon_id, '_wc_loyalty_user_id', $user_id);
+        
+        return $coupon_code;
+    }
+    
+    return false;
+}
+
+/**
+ * Metodă extinsă pentru stocarea cuponului utilizatorului
+ */
+private function store_user_coupon($user_id, $coupon_code, $discount_value, $expiry = '+30 days', $tier = null, $coupon_type = 'discount') {
+    $user_coupons = get_user_meta($user_id, '_wc_loyalty_coupons', true);
+    
+    if (!is_array($user_coupons)) {
+        $user_coupons = array();
+    }
+    
+    // Adaugă noul cupon
+    $user_coupons[] = array(
+        'code' => $coupon_code,
+        'discount' => $discount_value,
+        'created' => current_time('mysql'),
+        'expires' => date('Y-m-d H:i:s', strtotime($expiry)),
+        'is_used' => false,
+        'tier' => $tier,  // Stochează informațiile tier-ului
+        'type' => $coupon_type // Adaugă tipul cuponului
+    );
+    
+    // Salvează cupoanele actualizate
+    update_user_meta($user_id, '_wc_loyalty_coupons', $user_coupons);
+}
+
+/**
+ * Verifică eligibilitatea pentru recompense
+ */
+public function check_reward_eligibility($user_id, $points) {
+    $reward_tiers = unserialize(get_option('wc_loyalty_reward_tiers'));
+    $claimed_rewards = $this->get_rewards_claimed($user_id);
+    $display_points = WC_Loyalty()->points->get_user_display_points($user_id);
+    
+    foreach ($reward_tiers as $tier => $reward) {
+        // Procesează automat recompensele non-free product și de sub 2000 puncte
+        if (($tier <= $points || $tier <= $display_points) && ($reward['type'] !== 'free_product' || $tier !== 2000)) {
+            // Dacă această recompensă nu a fost deja solicitată
+            if (!isset($claimed_rewards[$tier])) {
+                $this->process_reward($user_id, $tier, $reward);
+                
+                // Marchează recompensa ca solicitată
+                $claimed_rewards[$tier] = current_time('mysql');
+                $this->update_rewards_claimed($user_id, $claimed_rewards);
+                
+                error_log("Reward tier $tier automatically claimed by user $user_id");
+            }
+        }
+    }
+}
+
+/**
+ * Procesează recompensa
+ */
+private function process_reward($user_id, $tier, $reward) {
+    $user = get_user_by('id', $user_id);
+    
+    // Verifică dacă utilizatorul are deja un cupon activ pentru acest tier
+    $user_coupons = $this->get_user_coupons($user_id);
+    $tier_already_processed = false;
+    
+    foreach ($user_coupons as $coupon) {
+        if (isset($coupon['tier']) && $coupon['tier'] == $tier) {
+            $tier_already_processed = true;
+            break;
+        }
+    }
+    
+    // Procesează doar dacă tier-ul nu a fost procesat încă
+    if (!$tier_already_processed) {
+        switch ($reward['type']) {
+            case 'discount':
+                // Generează codul cuponului
+                $coupon_code = $this->generate_discount_coupon($user_id, $reward['value']);
+                
+                // Stochează codul cuponului cu informațiile tier-ului
+                $this->store_user_coupon($user_id, $coupon_code, $reward['value'], '+30 days', $tier, 'discount');
+                break;
+                
+            case 'free_shipping':
+                // Activează transportul gratuit
+                update_user_meta($user_id, '_wc_loyalty_free_shipping', 'yes');
+                
+                // Stochează notificarea
+                $this->store_user_notification($user_id, 'free_shipping', __('You\'ve earned free shipping on your next order!', 'wc-loyalty-gamification'));
+                break;
+                
+            case 'free_product':
+                // Dacă nu este tier-ul de 2000, procesează normal
+                // (Tier-ul de 2000 este procesat special prin handle_free_product_eligibility)
+                if ($tier !== 2000) {
+                    // Generează cupon pentru produsul gratuit
+                    $coupon_code = $this->generate_free_product_coupon($user_id);
+                    
+                    if ($coupon_code) {
+                        // Stochează codul cuponului
+                        $this->store_user_coupon(
+                            $user_id, 
+                            $coupon_code, 
+                            100, // 100% reducere
+                            '+30 days', 
+                            $tier,
+                            'free_product' // tip special de cupon
+                        );
+                        
+                        // Stochează notificarea
+                        $this->store_user_notification(
+                            $user_id, 
+                            'free_product', 
+                            __('You\'ve earned a free product! Use the coupon code to claim one of our selected products.', 'wc-loyalty-gamification')
+                        );
+                    }
+                }
+                break;
+        }
+    }
+}
     /**
      * Deduct points from user account.
      *
@@ -464,4 +671,44 @@ class WC_Loyalty_Points {
         
         return false;
     }
+    
+    /**
+ * Funcția pentru a schimba configurația discountului la aplicarea cuponului
+ */
+public function pre_process_free_product_coupon($coupon) {
+    // Verifică dacă este un cupon pentru produs gratuit
+    $is_free_product_coupon = get_post_meta($coupon->get_id(), '_wc_loyalty_free_product_coupon', true);
+    
+    if ($is_free_product_coupon === 'yes') {
+        // Adaugă mesaj în coș
+        WC()->cart->add_notice(__('Free product coupon applied! Remember that this coupon only works with a single eligible item.', 'wc-loyalty-gamification'));
+    }
+}
+
+/**
+ * Obține lista produselor gratuite disponibile
+ */
+public function get_free_products() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'wc_loyalty_free_products';
+    $free_products = $wpdb->get_col("SELECT product_id FROM $table_name");
+    
+    $products = array();
+    
+    if (!empty($free_products)) {
+        foreach ($free_products as $product_id) {
+            $product = wc_get_product($product_id);
+            if ($product) {
+                $products[] = array(
+                    'id' => $product_id,
+                    'name' => $product->get_name(),
+                    'price' => $product->get_price(),
+                    'image' => $product->get_image(),
+                    'permalink' => $product->get_permalink()
+                );
+            }
+        }
+    }
+    
+    return $products;
 }
