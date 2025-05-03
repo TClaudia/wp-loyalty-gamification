@@ -597,3 +597,33 @@ add_action('woocommerce_before_single_product_summary', function() {
     }
 });
 
+/**
+ * Get free products available for loyalty rewards
+ * 
+ * @return array Array of free product data
+ */
+public function get_free_products() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'wc_loyalty_free_products';
+    $free_products = $wpdb->get_col("SELECT product_id FROM $table_name");
+    
+    $products = array();
+    
+    if (!empty($free_products)) {
+        foreach ($free_products as $product_id) {
+            $product = wc_get_product($product_id);
+            if ($product) {
+                $products[] = array(
+                    'id' => $product_id,
+                    'name' => $product->get_name(),
+                    'price' => $product->get_price(),
+                    'image' => $product->get_image(),
+                    'permalink' => $product->get_permalink()
+                );
+            }
+        }
+    }
+    
+    return $products;
+}
+
