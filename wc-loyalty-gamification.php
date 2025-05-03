@@ -363,12 +363,13 @@ public $cart;
     public function init_components() {
         // Initialize components in the correct dependency order
         $this->points = new WC_Loyalty_Points();
-        $this->rewards = new WC_Loyalty_Rewards();
+        $this->rewards = new WC_Loyalty_Rewards();  
+        $this->cart = new WC_Loyalty_Cart();
         $this->frontend = new WC_Loyalty_Frontend();
         $this->admin = new WC_Loyalty_Admin();
         $this->account = new WC_Loyalty_Account();
         $this->ajax = new WC_Loyalty_Ajax();
-        $this->cart = new WC_Loyalty_Cart();
+    
     }
 }
 

@@ -97,9 +97,13 @@ class WC_Loyalty_Cart {
         }
         
         // Apply coupon to cart
-        $applied = WC()->cart->apply_coupon($coupon_code);
+        $result = WC()->cart->apply_coupon($coupon_code);
         
-        if ($applied !== false) {
+        if ($result) {
+            // Mark the coupon as used in user meta
+            $user_id = get_current_user_id();
+            WC_Loyalty()->rewards->mark_coupon_as_used($coupon_code, $user_id);
+            
             wp_send_json_success(array(
                 'message' => __('Coupon applied successfully!', 'wc-loyalty-gamification')
             ));

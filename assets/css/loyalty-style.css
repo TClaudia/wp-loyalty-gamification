@@ -920,91 +920,119 @@
                   border-left: 1px solid rgba(121, 82, 179, 0.3);
                 }
 
-    /* Cart Coupons Styles */
-    .wc-loyalty-cart-coupons {
-      margin-bottom: 20px;
-      padding: 15px;
-      background-color: #f8f9fa;
-      border-radius: var(--loyalty-border-radius);
-      border-left: 4px solid var(--loyalty-primary);
-    }
-  
-    .wc-loyalty-cart-coupons h3 {
-      margin-top: 0;
-      margin-bottom: 15px;
-      color: var(--loyalty-primary-dark);
-      font-size: 18px;
-    }
-  
-    .wc-loyalty-cart-coupon-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-  
-    .wc-loyalty-cart-coupon {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px 15px;
-      background: linear-gradient(135deg, var(--loyalty-primary-light), var(--loyalty-primary));
-      color: white;
-      border-radius: var(--loyalty-border-radius);
-      min-width: 200px;
-      max-width: 100%;
-    }
-  
-    .wc-loyalty-cart-coupon.applied {
-      background: linear-gradient(135deg, var(--loyalty-success), #1e7e34);
-    }
-  
-    .wc-loyalty-cart-coupon-info {
-      display: flex;
-      flex-direction: column;
-    }
-  
-    .wc-loyalty-cart-coupon-discount {
-      font-weight: 700;
-      font-size: 16px;
-    }
-  
-    .wc-loyalty-cart-coupon-code {
-      font-size: 12px;
-      opacity: 0.9;
-    }
-  
-    .wc-loyalty-coupon-applied {
-      background-color: rgba(255, 255, 255, 0.2);
-      padding: 4px 10px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 600;
-    }
-  
-    .apply-loyalty-coupon {
-      background-color: var(--loyalty-secondary) !important;
-      color: white !important;
-      border: none !important;
-      padding: 5px 12px !important;
-      cursor: pointer;
-      font-size: 14px !important;
-      font-weight: 600 !important;
-      transition: var(--loyalty-transition);
-    }
-  
-    .apply-loyalty-coupon:hover {
-      background-color: var(--loyalty-secondary-dark) !important;
-    }
-  
-    @media screen and (max-width: 480px) {
-      .wc-loyalty-cart-coupon-list {
-        flex-direction: column;
-      }
-  
-      .wc-loyalty-cart-coupon {
-        width: 100%;
-      }
-    }
-
+        /* Cart Coupons Styles */
+        .wc-loyalty-cart-coupons {
+          margin-bottom: 20px;
+          padding: 15px;
+          background-color: #f8f9fa;
+          border-radius: var(--loyalty-border-radius, 8px);
+          border-left: 4px solid #7952b3;
+        }
     
+        .wc-loyalty-cart-coupons h3 {
+          margin-top: 0;
+          margin-bottom: 15px;
+          color: #5e3d8f;
+          font-size: 18px;
+        }
+    
+        .wc-loyalty-cart-coupon-list {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+        }
+    
+        .wc-loyalty-cart-coupon {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 10px 15px;
+          background: linear-gradient(135deg, #9c74d5, #7952b3);
+          color: white;
+          border-radius: 8px;
+          min-width: 200px;
+          max-width: 100%;
+          box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+    
+        .wc-loyalty-cart-coupon.applied {
+          background: linear-gradient(135deg, #28a745, #1e7e34);
+        }
+    
+        .wc-loyalty-cart-coupon-info {
+          display: flex;
+          flex-direction: column;
+        }
+    
+        .wc-loyalty-cart-coupon-discount {
+          font-weight: 700;
+          font-size: 16px;
+        }
+    
+        .wc-loyalty-cart-coupon-code {
+          font-size: 12px;
+          opacity: 0.9;
+        }
+    
+        .wc-loyalty-coupon-applied {
+          background-color: rgba(255, 255, 255, 0.2);
+          padding: 4px 10px;
+          border-radius: 20px;
+          font-size: 12px;
+          font-weight: 600;
+        }
+    
+        .apply-loyalty-coupon {
+          background-color: #fd7e14 !important;
+          color: white !important;
+          border: none !important;
+          padding: 5px 12px !important;
+          cursor: pointer;
+          font-size: 14px !important;
+          font-weight: 600 !important;
+          transition: all 0.3s ease;
+          border-radius: 4px;
+        }
+    
+        .apply-loyalty-coupon:hover {
+          background-color: #c85e02 !important;
+        }
+    
+        /* Notification popup */
+        .wc-loyalty-notification-popup {
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          padding: 12px 20px;
+          background-color: #fff;
+          border-left: 4px solid #7952b3;
+          box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+          border-radius: 4px;
+          z-index: 99999;
+          transform: translateX(120%);
+          transition: transform 0.3s ease;
+          max-width: 300px;
+        }
+    
+        .wc-loyalty-notification-popup.show {
+          transform: translateX(0);
+        }
+    
+        .wc-loyalty-notification-success {
+          border-left-color: #28a745;
+        }
+    
+        .wc-loyalty-notification-error {
+          border-left-color: #dc3545;
+        }
+    
+        @media screen and (max-width: 480px) {
+          .wc-loyalty-cart-coupon-list {
+            flex-direction: column;
+          }
+    
+          .wc-loyalty-cart-coupon {
+            width: 100%;
+          }
+        }
 }

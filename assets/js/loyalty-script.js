@@ -11,6 +11,7 @@
             this.initModal();
             this.initCircleProgress();
             this.initClaimProduct();
+            this.initCoupons();
         },
 
         // Initialize modal functionality
@@ -132,14 +133,91 @@
                 });
             });
         },
+        
+        // Initialize coupon functionality
+        initCoupons: function() {
+            // Handle copy coupon code
+            $(document).on('click', '.wc-loyalty-copy-code', function(e) {
+                e.preventDefault();
+                
+                var couponCode = $(this).data('code');
+                var $button = $(this);
+                
+                // Create a temporary input element
+                var $temp = $("<input>");
+                $("body").append($temp);
+                $temp.val(couponCode).select();
+                
+                // Copy the text
+                document.execCommand("copy");
+                $temp.remove();
+                
+                // Change button text to indicate copied
+                var originalText = $button.text();
+                $button.text('Copied!');
+                
+                // Reset button text after a delay
+                setTimeout(function() {
+                    $button.text(originalText);
+                }, 2000);
+                
+                // Show notification
+                WCLoyalty.showNotification('Coupon code copied to clipboard!', 'success');
+            });
+            
+            // Handle apply loyalty coupon
+            $(document).on('click', '.apply-loyalty-coupon', function(e) {
+                e.preventDefault();
+                
+                var $button = $(this);
+                var couponCode = $button.data('coupon');
+                
+                // Disable button and show loading state
+                $button.prop('disabled', true).text('Applying...');
+                
+                $.ajax({
+                    type: 'POST',
+                    url: wcLoyaltyData.ajaxurl,
+                    data: {
+                        action: 'apply_loyalty_coupon',
+                        nonce: wcLoyaltyData.nonce,
+                        coupon_code: couponCode
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            // Show success message
+                            WCLoyalty.showNotification(response.data.message, 'success');
+                            
+                            // Refresh the cart
+                            $('body').trigger('update_checkout');
+                            $('body').trigger('wc_update_cart');
+                            
+                            // Reload the page for a complete refresh
+                            setTimeout(function() {
+                                window.location.reload();
+                            }, 1000);
+                        } else {
+                            // Show error message
+                            WCLoyalty.showNotification(response.data.message, 'error');
+                            $button.prop('disabled', false).text('Apply');
+                        }
+                    },
+                    error: function() {
+                        // Show error message
+                        WCLoyalty.showNotification('An error occurred. Please try again.', 'error');
+                        $button.prop('disabled', false).text('Apply');
+                    }
+                });
+            });
+        },
 
         // Show notification
         showNotification: function(message, type) {
             // Remove any existing notifications
-            $('.wc-loyalty-notification').remove();
+            $('.wc-loyalty-notification-popup').remove();
             
             // Create notification element
-            var notification = $('<div class="wc-loyalty-notification wc-loyalty-notification-' + type + '">' + message + '</div>');
+            var notification = $('<div class="wc-loyalty-notification-popup wc-loyalty-notification-' + type + '">' + message + '</div>');
             
             // Append to body
             $('body').append(notification);
@@ -164,125 +242,4 @@
         WCLoyalty.init();
     });
 
-// Handle copy coupon code functionality
-$('.wc-loyalty-copy-code').on('click', function(e) {
-    e.preventDefault();
-    
-    var couponCode = $(this).data('code');
-    var $button = $(this);
-    
-    // Create a temporary input element
-    var $temp = $("<input>");
-    $("body").append($temp);
-    $temp.val(couponCode).select();
-    
-    // Copy the text
-    document.execCommand("copy");
-    $temp.remove();
-    
-    // Change button text to indicate copied
-    var originalText = $button.text();
-    $button.text('Copied!');
-    
-    // Reset button text after a delay
-    setTimeout(function() {
-        $button.text(originalText);
-    }, 2000);
-    
-    // Show notification
-    WCLoyalty.showNotification('Coupon code copied to clipboard!', 'success');
-});
-// Add this to your main JavaScript (after the existing code)
-
-// Apply coupon functionality
-$(document).on('click', '.apply-loyalty-coupon', function(e) {
-    e.preventDefault();
-    
-    var $button = $(this);
-    var couponCode = $button.data('coupon');
-    
-    // Disable button and show loading state
-    $button.prop('disabled', true).text('Applying...');
-    
-    $.ajax({
-        type: 'POST',
-        url: wcLoyaltyData.ajaxurl,
-        data: {
-            action: 'apply_loyalty_coupon',
-            nonce: wcLoyaltyData.nonce,
-            coupon_code: couponCode
-        },
-        success: function(response) {
-            if (response.success) {
-                // Show success message
-                WCLoyalty.showNotification(response.data.message, 'success');
-                
-                // Refresh the cart
-                $('body').trigger('update_checkout');
-                $('body').trigger('wc_update_cart');
-                
-                // Optional: reload the page for a complete refresh
-                setTimeout(function() {
-                    window.location.reload();
-                }, 1000);
-            } else {
-                // Show error message
-                WCLoyalty.showNotification(response.data.message, 'error');
-                $button.prop('disabled', false).text('Apply');
-            }
-        },
-        error: function() {
-            // Show error message
-            WCLoyalty.showNotification('An error occurred. Please try again.', 'error');
-            $button.prop('disabled', false).text('Apply');
-        }
-    });
-});
-
-// Apply loyalty coupon functionality
-jQuery(document).ready(function($) {
-    $(document).on('click', '.apply-loyalty-coupon', function(e) {
-        e.preventDefault();
-        
-        var $button = $(this);
-        var couponCode = $button.data('coupon');
-        
-        // Disable button and show loading state
-        $button.prop('disabled', true).text('Applying...');
-        
-        $.ajax({
-            type: 'POST',
-            url: wcLoyaltyData.ajaxurl,
-            data: {
-                action: 'apply_loyalty_coupon',
-                nonce: wcLoyaltyData.nonce,
-                coupon_code: couponCode
-            },
-            success: function(response) {
-                if (response.success) {
-                    // Show success message
-                    WCLoyalty.showNotification(response.data.message, 'success');
-                    
-                    // Refresh the cart
-                    $('body').trigger('update_checkout');
-                    $('body').trigger('wc_update_cart');
-                    
-                    // Reload the page after a short delay to reflect changes
-                    setTimeout(function() {
-                        window.location.reload();
-                    }, 1000);
-                } else {
-                    // Show error message
-                    WCLoyalty.showNotification(response.data.message, 'error');
-                    $button.prop('disabled', false).text('Apply');
-                }
-            },
-            error: function() {
-                // Show error message
-                WCLoyalty.showNotification('An error occurred. Please try again.', 'error');
-                $button.prop('disabled', false).text('Apply');
-            }
-        });
-    });
-});
 })(jQuery);
