@@ -149,7 +149,6 @@ public function add_comment_author_badge($author, $comment_id, $comment) {
     
     return $author . ' ' . $badge;
 }
-<<<<<<< HEAD
 
 // Add this to the WC_Loyalty_Frontend class constructor
 public function __construct() {
@@ -244,6 +243,4 @@ public function apply_loyalty_coupon() {
         ));
     }
 }
-=======
->>>>>>> 4156f4abd9112a525cb9a84e230677a226be6302
 }
