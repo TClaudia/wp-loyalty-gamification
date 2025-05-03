@@ -17,6 +17,7 @@ class WC_Loyalty_Rewards {
     /**
      * Constructor.
      */
+<<<<<<< HEAD
    public function __construct() {
     // Check reward eligibility after points update
     add_action('wc_loyalty_points_updated', array($this, 'check_reward_eligibility'), 10, 2);
@@ -49,6 +50,17 @@ public function handle_applied_coupon($coupon_code) {
             $this->mark_coupon_as_used($coupon_code, $user_id);
             break;
         }
+=======
+    public function __construct() {
+        // Check reward eligibility after points update
+        add_action('wc_loyalty_points_updated', array($this, 'check_reward_eligibility'), 10, 2);
+        
+        // Apply free shipping if user has earned it
+        add_filter('woocommerce_package_rates', array($this, 'apply_free_shipping'), 100, 2);
+        
+        // Add notification for upcoming reward
+        add_action('woocommerce_before_single_product', array($this, 'product_reward_notice'));
+>>>>>>> 4156f4abd9112a525cb9a84e230677a226be6302
     }
     
     /**
@@ -445,6 +457,7 @@ public function get_user_notifications($user_id) {
             );
         }
     }
+<<<<<<< HEAD
 
     // Add this to the WC_Loyalty_Rewards class in includes/class-wc-loyalty-rewards.php
 
@@ -513,4 +526,6 @@ public function mark_coupon_as_used($coupon_code, $user_id) {
         update_user_meta($user_id, '_wc_loyalty_coupons', $user_coupons);
     }
 }
+=======
+>>>>>>> 4156f4abd9112a525cb9a84e230677a226be6302
 } // Added the missing closing brace for the class

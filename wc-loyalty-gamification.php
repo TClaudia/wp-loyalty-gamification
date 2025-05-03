@@ -1,6 +1,10 @@
 <?php
 /**
+<<<<<<< HEAD
  * Plugin Name: WooCommerce Loyalty Gamification GIT 
+=======
+ * Plugin Name: WooCommerce Loyalty Gamification
+>>>>>>> 4156f4abd9112a525cb9a84e230677a226be6302
  * Description: A loyalty gamification system for WooCommerce with points, progress bar, and rewards.
  * Version: 1.0.1
  * Author: Claudia Tun
@@ -215,8 +219,12 @@ function wc_loyalty_init_plugin() {
         'includes/class-wc-loyalty-frontend.php',
         'includes/class-wc-loyalty-admin.php',
         'includes/class-wc-loyalty-account.php',
+<<<<<<< HEAD
         'includes/class-wc-loyalty-ajax.php',
         'includes/class-wc-loyalty-cart.php'
+=======
+        'includes/class-wc-loyalty-ajax.php'
+>>>>>>> 4156f4abd9112a525cb9a84e230677a226be6302
     );
 
     foreach ($include_files as $file) {
@@ -360,7 +368,10 @@ class WC_Loyalty_Gamification {
         $this->admin = new WC_Loyalty_Admin();
         $this->account = new WC_Loyalty_Account();
         $this->ajax = new WC_Loyalty_Ajax();
+<<<<<<< HEAD
         $this->cart = new WC_Loyalty_Cart();
+=======
+>>>>>>> 4156f4abd9112a525cb9a84e230677a226be6302
     }
 }
 
@@ -437,6 +448,7 @@ function wc_loyalty_add_debug_page() {
     );
 }
 // Enable debug page
+<<<<<<< HEAD
 add_action('admin_menu', 'wc_loyalty_add_debug_page', 99);
 
 /**
@@ -445,3 +457,6 @@ add_action('admin_menu', 'wc_loyalty_add_debug_page', 99);
  * @var WC_Loyalty_Cart
  */
 public $cart;
+=======
+add_action('admin_menu', 'wc_loyalty_add_debug_page', 99);
+>>>>>>> 4156f4abd9112a525cb9a84e230677a226be6302

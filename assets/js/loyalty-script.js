@@ -192,6 +192,7 @@ $('.wc-loyalty-copy-code').on('click', function(e) {
     // Show notification
     WCLoyalty.showNotification('Coupon code copied to clipboard!', 'success');
 });
+<<<<<<< HEAD
 // Add this to your main JavaScript (after the existing code)
 
 // Apply coupon functionality
@@ -285,4 +286,7 @@ jQuery(document).ready(function($) {
         });
     });
 });
+=======
+
+>>>>>>> 4156f4abd9112a525cb9a84e230677a226be6302
 })(jQuery);
