@@ -1,0 +1,170 @@
+<?php
+/**
+ * Loyalty Interface Template
+ *
+ * This template displays the loyalty program interface in the frontend.
+ *
+ * @package WC_Loyalty_Gamification
+ */
+
+defined('ABSPATH') || exit;
+
+$user_id = get_current_user_id();
+$user_coupons = WC_Loyalty()->rewards->get_user_coupons($user_id);
+$user_notifications = WC_Loyalty()->rewards->get_user_notifications($user_id);
+?>
+
+<!-- Loyalty Button -->
+<div class="wc-loyalty-button">
+    <button id="wc-loyalty-toggle-btn"><?php esc_html_e('See Your Points', 'wc-loyalty-gamification'); ?></button>
+</div>
+
+<!-- Loyalty Modal -->
+<div id="wc-loyalty-modal" class="wc-loyalty-modal">
+    <div class="wc-loyalty-modal-content">
+        <span class="wc-loyalty-close">&times;</span>
+        
+        <h2><?php esc_html_e('Your Loyalty Points', 'wc-loyalty-gamification'); ?></h2>
+        
+        <?php
+        // Calculate proper display points
+        $highest_tier = !empty($reward_tiers) ? max(array_keys($reward_tiers)) : 2000;
+        $display_points = min($total_points, $highest_tier);
+        
+        // Recalculate progress percentage
+        $progress = 0;
+        if ($next_tier !== null) {
+            $progress = ($total_points / $next_tier) * 100;
+        } elseif (!empty($reward_tiers)) {
+            // If user has passed all tiers, cap at 100%
+            $progress = 100;
+        }
+        // Limit to 100%
+        $progress = min($progress, 100);
+        ?>
+        
+        <div class="wc-loyalty-points-display">
+            <div class="wc-loyalty-progress-circle" data-progress="<?php echo esc_attr($progress); ?>">
+                <div class="wc-loyalty-points-count"><?php echo esc_html($display_points); ?></div>
+            </div>
+            
+            <?php if ($cycle_level > 0) : ?>
+                <div class="wc-loyalty-cycle-level">
+                    <?php printf(esc_html__('Cycle Level: %d', 'wc-loyalty-gamification'), $cycle_level); ?>
+                    <span class="wc-loyalty-total-points"><?php printf(esc_html__('Total Points: %d', 'wc-loyalty-gamification'), $total_points); ?></span>
+                </div>
+            <?php endif; ?>
+            
+            <?php if ($next_tier) : ?>
+                <div class="wc-loyalty-points-next">
+                    <?php 
+                    $points_needed = $next_tier - $total_points;
+                    printf(
+                        esc_html__('You need %s more points to reach your next reward!', 'wc-loyalty-gamification'),
+                        '<strong>' . esc_html($points_needed) . '</strong>'
+                    ); 
+                    ?>
+                </div>
+            <?php else : ?>
+                <div class="wc-loyalty-points-next">
+                    <?php esc_html_e('Congratulations! You\'ve reached all reward tiers!', 'wc-loyalty-gamification'); ?>
+                </div>
+            <?php endif; ?>
+        </div>
+        
+        <?php if (!empty($user_coupons)) : ?>
+            <div class="wc-loyalty-coupons-list">
+                <h3><?php esc_html_e('Your Discount Coupons', 'wc-loyalty-gamification'); ?></h3>
+                
+                <?php foreach ($user_coupons as $index => $coupon) : 
+                    $coupon_expired = strtotime($coupon['expires']) < time();
+                    $coupon_class = $coupon['is_used'] ? 'used' : ($coupon_expired ? 'expired' : 'active');
+                ?>
+                    <div class="wc-loyalty-coupon <?php echo esc_attr($coupon_class); ?>">
+                        <div class="wc-loyalty-coupon-discount">
+                            <?php printf(esc_html__('%d%% OFF', 'wc-loyalty-gamification'), $coupon['discount']); ?>
+                        </div>
+                        <div class="wc-loyalty-coupon-code">
+                            <?php echo esc_html($coupon['code']); ?>
+                            <button class="wc-loyalty-copy-code" data-code="<?php echo esc_attr($coupon['code']); ?>"><?php esc_html_e('Copy', 'wc-loyalty-gamification'); ?></button>
+                        </div>
+                        <div class="wc-loyalty-coupon-expiry">
+                            <?php if ($coupon_expired) : ?>
+                                <?php esc_html_e('Expired', 'wc-loyalty-gamification'); ?>
+                            <?php elseif ($coupon['is_used']) : ?>
+                                <?php esc_html_e('Used', 'wc-loyalty-gamification'); ?>
+                            <?php else : ?>
+                                <?php printf(esc_html__('Valid until %s', 'wc-loyalty-gamification'), date_i18n(get_option('date_format'), strtotime($coupon['expires']))); ?>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+        
+        <?php if (!empty($user_notifications)) : ?>
+            <div class="wc-loyalty-notifications">
+                <h3><?php esc_html_e('Notifications', 'wc-loyalty-gamification'); ?></h3>
+                
+                <?php foreach ($user_notifications as $index => $notification) : ?>
+                    <div class="wc-loyalty-notification <?php echo esc_attr($notification['type']); ?>">
+                        <?php echo esc_html($notification['message']); ?>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+        
+        <div class="wc-loyalty-rewards-list">
+            <h3><?php esc_html_e('Rewards', 'wc-loyalty-gamification'); ?></h3>
+            
+            <?php if (!empty($reward_tiers)) : ?>
+                <ul>
+                    <?php foreach ($reward_tiers as $tier => $reward) : 
+                        $is_achieved = $total_points >= $tier;
+                        $is_claimed = isset($claimed_rewards[$tier]);
+                        $class = $is_achieved ? 'achieved' : '';
+                        $class .= $is_claimed ? ' claimed' : '';
+                    ?>
+                        <li class="<?php echo esc_attr($class); ?>">
+                            <span class="tier-points"><?php echo esc_html($tier); ?> <?php esc_html_e('points', 'wc-loyalty-gamification'); ?></span>
+                            
+                            <span class="tier-reward">
+                                <?php
+                                switch ($reward['type']) {
+                                    case 'discount':
+                                        printf(
+                                            esc_html__('%d%% Discount', 'wc-loyalty-gamification'),
+                                            esc_html($reward['value'])
+                                        );
+                                        break;
+                                    case 'free_shipping':
+                                        esc_html_e('Free Shipping', 'wc-loyalty-gamification');
+                                        break;
+                                    case 'free_product':
+                                        esc_html_e('Free Product', 'wc-loyalty-gamification');
+                                        break;
+                                }
+                                ?>
+                            </span>
+                            
+                            <?php if ($is_claimed) : ?>
+                                <span class="claimed-label"><?php esc_html_e('Claimed', 'wc-loyalty-gamification'); ?></span>
+                            <?php endif; ?>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php else : ?>
+                <p><?php esc_html_e('No rewards available yet.', 'wc-loyalty-gamification'); ?></p>
+            <?php endif; ?>
+        </div>
+        
+        <div class="wc-loyalty-history-link">
+            <a href="<?php echo esc_url(wc_get_account_endpoint_url('loyalty-points')); ?>">
+                <?php esc_html_e('View Points History', 'wc-loyalty-gamification'); ?>
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Notifications Container -->
+<div class="wc-loyalty-notifications-container"></div>
