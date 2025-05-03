@@ -174,7 +174,7 @@ $next_tier = WC_Loyalty()->rewards->get_next_reward_tier($display_points, $rewar
                             <?php if ($is_claimed) : ?>
                                 <span class="claimed-label"><?php esc_html_e('Claimed', 'wc-loyalty-gamification'); ?></span>
                             <?php elseif ($tier == 2000 && $reward['type'] == 'discount' && $display_points == 2000) : ?>
-                                <a href="<?php echo esc_url(wc_get_account_endpoint_url('loyalty-rewards')); ?>" class="claim-now-label">
+                                <a href="<?php echo esc_url(wc_get_account_endpoint_url('loyalty-points')); ?>" class="claim-now-label">
                                     <?php esc_html_e('View Coupon', 'wc-loyalty-gamification'); ?>
                                 </a>
                             <?php endif; ?>

@@ -13,6 +13,60 @@ if (!defined('ABSPATH')) {
 }
 ?>
 
+<!-- COUPONS SECTION -->
+<div class="wc-loyalty-coupons-section">
+    <h2><?php esc_html_e('Your Discount Coupons', 'wc-loyalty-gamification'); ?></h2>
+    
+    <?php if (!empty($user_coupons)): ?>
+        <div class="wc-loyalty-coupons-grid">
+            <?php foreach ($user_coupons as $index => $coupon): 
+                $coupon_expired = strtotime($coupon['expires']) < time();
+                $coupon_class = $coupon['is_used'] ? 'used' : ($coupon_expired ? 'expired' : 'active');
+                $is_premium = isset($coupon['tier']) && $coupon['tier'] === 2000;
+            ?>
+                <div class="wc-loyalty-coupon <?php echo esc_attr($coupon_class); ?> <?php echo $is_premium ? 'premium-coupon' : ''; ?>" <?php if ($coupon['is_used'] || $coupon_expired) echo 'data-status="' . ($coupon['is_used'] ? 'USED' : 'EXPIRED') . '"'; ?>>
+                    <div class="wc-loyalty-coupon-discount">
+                        <?php printf(esc_html__('%d%% OFF', 'wc-loyalty-gamification'), $coupon['discount']); ?>
+                        <?php if ($is_premium): ?>
+                            <span class="premium-label"><?php esc_html_e('Premium Reward', 'wc-loyalty-gamification'); ?></span>
+                        <?php endif; ?>
+                    </div>
+                    <div class="wc-loyalty-coupon-code">
+                        <?php echo esc_html($coupon['code']); ?>
+                        <button class="wc-loyalty-copy-code" data-code="<?php echo esc_attr($coupon['code']); ?>"><?php esc_html_e('Copy', 'wc-loyalty-gamification'); ?></button>
+                    </div>
+                    <?php if ($is_premium): ?>
+                        <div class="wc-loyalty-coupon-info">
+                            <?php 
+                            printf(
+                                esc_html__('Valid for orders up to %s lei', 'wc-loyalty-gamification'),
+                                wc_loyalty_get_premium_discount_max() 
+                            ); 
+                            ?>
+                        </div>
+                    <?php endif; ?>
+                    <div class="wc-loyalty-coupon-expiry">
+                        <?php if ($coupon_expired): ?>
+                            <?php esc_html_e('Expired', 'wc-loyalty-gamification'); ?>
+                        <?php elseif ($coupon['is_used']): ?>
+                            <?php esc_html_e('Used', 'wc-loyalty-gamification'); ?>
+                        <?php else: ?>
+                            <?php printf(esc_html__('Valid until %s', 'wc-loyalty-gamification'), date_i18n(get_option('date_format'), strtotime($coupon['expires']))); ?>
+                        <?php endif; ?>
+                    </div>
+                    <div class="wc-loyalty-coupon-instructions">
+                        <?php esc_html_e('Add products to your cart and enter this code at checkout.', 'wc-loyalty-gamification'); ?>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    <?php else: ?>
+        <div class="woocommerce-info">
+            <?php esc_html_e('You don\'t have any discount coupons yet. Earn more points to receive discount rewards!', 'wc-loyalty-gamification'); ?>
+        </div>
+    <?php endif; ?>
+</div>
+
 <div class="wc-loyalty-tier-summary">
     <?php
     $tier_key = WC_Loyalty()->points->get_user_tier($user_id);
