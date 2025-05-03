@@ -186,31 +186,25 @@
                     success: function(response) {
                         if (response.success) {
                             // Show success message
-                            WCLoyalty.showNotification(response.data.message, 'success');
+                            alert(response.data.message);
                             
-                            // Refresh the cart
-                            $('body').trigger('update_checkout');
-                            $('body').trigger('wc_update_cart');
-                            
-                            // Reload the page for a complete refresh
-                            setTimeout(function() {
-                                window.location.reload();
-                            }, 1000);
+                            // Refresh the page
+                            window.location.reload();
                         } else {
                             // Show error message
-                            WCLoyalty.showNotification(response.data.message, 'error');
+                            alert(response.data.message || 'Failed to apply coupon');
                             $button.prop('disabled', false).text('Apply');
                         }
                     },
                     error: function() {
                         // Show error message
-                        WCLoyalty.showNotification('An error occurred. Please try again.', 'error');
+                        alert('An error occurred. Please try again.');
                         $button.prop('disabled', false).text('Apply');
                     }
                 });
             });
         },
-
+        
         // Show notification
         showNotification: function(message, type) {
             // Remove any existing notifications

@@ -83,8 +83,21 @@ class WC_Loyalty_Cart {
      * AJAX handler for applying loyalty coupons.
      */
     public function apply_loyalty_coupon_ajax() {
+        // Check if user is logged in
+        if (!is_user_logged_in()) {
+            wp_send_json_error(array(
+                'message' => __('You must be logged in to apply coupons.', 'wc-loyalty-gamification')
+            ));
+            return;
+        }
+
         // Verify nonce
-        check_ajax_referer('wc_loyalty_nonce', 'nonce');
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'wc_loyalty_nonce')) {
+            wp_send_json_error(array(
+                'message' => __('Security check failed.', 'wc-loyalty-gamification')
+            ));
+            return;
+        }
         
         // Check if coupon code is provided
         $coupon_code = isset($_POST['coupon_code']) ? sanitize_text_field($_POST['coupon_code']) : '';
@@ -101,8 +114,9 @@ class WC_Loyalty_Cart {
         
         if ($result) {
             // Mark the coupon as used in user meta
-            $user_id = get_current_user_id();
-            WC_Loyalty()->rewards->mark_coupon_as_used($coupon_code, $user_id);
+            if (method_exists(WC_Loyalty()->rewards, 'mark_coupon_as_used')) {
+                WC_Loyalty()->rewards->mark_coupon_as_used($coupon_code, get_current_user_id());
+            }
             
             wp_send_json_success(array(
                 'message' => __('Coupon applied successfully!', 'wc-loyalty-gamification')

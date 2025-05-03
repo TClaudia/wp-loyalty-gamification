@@ -29,57 +29,54 @@ class WC_Loyalty_Frontend {
     }
 
    
-    /**
-     * Enqueue scripts and styles.
-     */
     public function enqueue_scripts() {
-        // Only enqueue if user is logged in
-        if (!is_user_logged_in()) {
-            return;
-        }
-        
-        // Enqueue styles
-        wp_enqueue_style(
-            'wc-loyalty-style',
-            WC_LOYALTY_PLUGIN_URL . 'assets/css/loyalty-style.css',
-            array(),
-            WC_LOYALTY_VERSION
-        );
-        
-        // Enqueue circle progress library
-        wp_enqueue_script(
-            'wc-loyalty-circle-progress',
-            WC_LOYALTY_PLUGIN_URL . 'assets/js/circle-progress.min.js',
-            array('jquery'),
-            '1.2.2',
-            true
-        );
-        
-        // Enqueue main script
-        wp_enqueue_script(
-            'wc-loyalty-script',
-            WC_LOYALTY_PLUGIN_URL . 'assets/js/loyalty-script.js',
-            array('jquery', 'wc-loyalty-circle-progress'),
-            WC_LOYALTY_VERSION,
-            true
-        );
-        
-        // Add dashicons for the star icon
-        wp_enqueue_style('dashicons');
-        
-        // Pass data to JS
-        $user_id = get_current_user_id();
-        $user_points = WC_Loyalty()->points->get_user_points($user_id);
-        $reward_tiers = unserialize(get_option('wc_loyalty_reward_tiers'));
-        $next_tier = WC_Loyalty()->rewards->get_next_reward_tier($user_points, $reward_tiers);
-        
-        wp_localize_script('wc-loyalty-script', 'wcLoyaltyData', array(
-            'ajaxurl' => admin_url('admin-ajax.php'),
-            'userPoints' => $user_points,
-            'nextTier' => $next_tier,
-            'nonce' => wp_create_nonce('wc_loyalty_nonce')
-        ));
+    // Only enqueue if user is logged in
+    if (!is_user_logged_in()) {
+        return;
     }
+    
+    // Enqueue styles
+    wp_enqueue_style(
+        'wc-loyalty-style',
+        WC_LOYALTY_PLUGIN_URL . 'assets/css/loyalty-style.css',
+        array(),
+        WC_LOYALTY_VERSION
+    );
+    
+    // Enqueue circle progress library
+    wp_enqueue_script(
+        'wc-loyalty-circle-progress',
+        WC_LOYALTY_PLUGIN_URL . 'assets/js/circle-progress.min.js',
+        array('jquery'),
+        '1.2.2',
+        true
+    );
+    
+    // Enqueue main script
+    wp_enqueue_script(
+        'wc-loyalty-script',
+        WC_LOYALTY_PLUGIN_URL . 'assets/js/loyalty-script.js',
+        array('jquery', 'wc-loyalty-circle-progress'),
+        WC_LOYALTY_VERSION,
+        true
+    );
+    
+    // Add dashicons for the star icon
+    wp_enqueue_style('dashicons');
+    
+    // Pass data to JS
+    $user_id = get_current_user_id();
+    $user_points = WC_Loyalty()->points->get_user_points($user_id);
+    $reward_tiers = unserialize(get_option('wc_loyalty_reward_tiers'));
+    $next_tier = WC_Loyalty()->rewards->get_next_reward_tier($user_points, $reward_tiers);
+    
+    wp_localize_script('wc-loyalty-script', 'wcLoyaltyData', array(
+        'ajaxurl' => admin_url('admin-ajax.php'),
+        'userPoints' => $user_points,
+        'nextTier' => $next_tier,
+        'nonce' => wp_create_nonce('wc_loyalty_nonce')
+    ));
+}
     
     /**
      * Render loyalty interface on frontend.
@@ -140,7 +137,7 @@ public function add_comment_author_badge($author, $comment_id, $comment) {
  * Constructor.
  */
 public function __construct() {
-    // Enqueue scripts and styles
+  // Enqueue scripts and styles
     add_action('wp_enqueue_scripts', array($this, 'enqueue_scripts'));
     
     // Add loyalty interface to footer
@@ -151,7 +148,6 @@ public function __construct() {
 
     // Add comment author badge
     add_filter('get_comment_author', array($this, 'add_comment_author_badge'), 10, 3);
-    
     //
 }
 
