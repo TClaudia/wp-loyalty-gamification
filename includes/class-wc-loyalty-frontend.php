@@ -28,22 +28,7 @@ class WC_Loyalty_Frontend {
         add_action('woocommerce_after_shop_loop_item', 'woocommerce_template_loop_add_to_cart', 10);
     }
 
-    /**
-     * Constructor.
-     */
-    public function __construct() {
-        // Enqueue scripts and styles
-        add_action('wp_enqueue_scripts', array($this, 'enqueue_scripts'));
-        
-        // Add loyalty interface to footer
-        add_action('wp_footer', array($this, 'render_loyalty_interface'));
-
-        // Register the fix_botiga_conflicts method
-        add_action('wp', array($this, 'fix_botiga_conflicts'), 99);
-
-         add_filter('get_comment_author', array($this, 'add_comment_author_badge'), 10, 3);
-    }
-    
+   
     /**
      * Enqueue scripts and styles.
      */
@@ -151,8 +136,21 @@ public function add_comment_author_badge($author, $comment_id, $comment) {
 }
 
 // Add this to the WC_Loyalty_Frontend class constructor
+/**
+ * Constructor.
+ */
 public function __construct() {
-    // Existing code...
+    // Enqueue scripts and styles
+    add_action('wp_enqueue_scripts', array($this, 'enqueue_scripts'));
+    
+    // Add loyalty interface to footer
+    add_action('wp_footer', array($this, 'render_loyalty_interface'));
+
+    // Register the fix_botiga_conflicts method
+    add_action('wp', array($this, 'fix_botiga_conflicts'), 99);
+
+    // Add comment author badge
+    add_filter('get_comment_author', array($this, 'add_comment_author_badge'), 10, 3);
     
     // Add loyalty coupons to cart
     add_action('woocommerce_before_cart_table', array($this, 'display_loyalty_coupons_in_cart'));
