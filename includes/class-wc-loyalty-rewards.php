@@ -18,165 +18,99 @@ class WC_Loyalty_Rewards {
      * Constructor.
      */
     public function __construct() {
-        // Verifică eligibilitatea pentru recompense după actualizarea punctelor
+        // Check reward eligibility after points update
         add_action('wc_loyalty_points_updated', array($this, 'check_reward_eligibility'), 10, 2);
         
-        // Handler special pentru când utilizatorul atinge exact 2000 de puncte
-        add_action('wc_loyalty_reached_2000_points', array($this, 'handle_free_product_eligibility'));
+        // Special handler for when user reaches exactly 2000 points
+        add_action('wc_loyalty_reached_2000_points', array($this, 'handle_premium_discount_eligibility'));
         
-        // Aplică transport gratuit dacă utilizatorul l-a câștigat
+        // Apply free shipping if earned
         add_filter('woocommerce_package_rates', array($this, 'apply_free_shipping'), 100, 2);
         
-        // Adaugă notificare pentru recompensa următoare
+        // Add notification for upcoming reward
         add_action('woocommerce_before_single_product', array($this, 'product_reward_notice'));
         
-        // Marchează cuponul ca utilizat când este aplicat
+        // Mark coupon as used when applied
         add_action('woocommerce_applied_coupon', array($this, 'handle_applied_coupon'));
         
-        // Adaugă validarea pentru cupoanele de produs gratuit
-        add_filter('woocommerce_coupon_is_valid', array($this, 'validate_loyalty_free_product_coupon'), 10, 3);
-    }
-    
-    public function validate_loyalty_free_product_coupon($valid, $coupon, $discount) {
-        // Verifică dacă este un cupon pentru produs gratuit
-        $is_free_product_coupon = get_post_meta($coupon->get_id(), '_wc_loyalty_free_product_coupon', true);
+        // Add discount label to cart and checkout
+        add_filter('woocommerce_cart_totals_coupon_label', array($this, 'custom_coupon_label'), 10, 2);
         
-        if ($is_free_product_coupon === 'yes') {
-            $items_count = 0;
-            $product_ids = $coupon->get_product_ids();
-            $valid_product_found = false;
-            
-            // Verifică produsele din coș
-            foreach (WC()->cart->get_cart() as $cart_item_key => $cart_item) {
-                $items_count++;
-                $product_id = $cart_item['product_id'];
-                
-                // Verifică dacă produsul este în lista de produse eligibile
-                if (in_array($product_id, $product_ids)) {
-                    $valid_product_found = true;
-                }
-            }
-            
-            // Cuponul este valid doar dacă există un singur produs în coș
-            if ($items_count !== 1) {
-                wc_add_notice(__('The free product coupon can only be used with a single product from the eligible products list.', 'wc-loyalty-gamification'), 'error');
-                return false;
-            }
-            
-            // Și dacă produsul este din lista de produse eligibile
-            if (!$valid_product_found) {
-                wc_add_notice(__('This coupon is only valid for selected products.', 'wc-loyalty-gamification'), 'error');
-                return false;
-            }
-        }
-        
-        return $valid;
+        // Add message about free shipping from loyalty program
+        add_action('woocommerce_before_shipping_calculator', array($this, 'display_loyalty_shipping_message'));
     }
-
-
     
     /**
-     * Handle free product eligibility when user reaches 2000 points
+     * Display free shipping message if applied
+     */
+    public function display_loyalty_shipping_message() {
+        if (!is_user_logged_in()) {
+            return;
+        }
+        
+        $user_id = get_current_user_id();
+        $free_shipping = get_user_meta($user_id, '_wc_loyalty_free_shipping', true);
+        
+        if ($free_shipping == 'yes') {
+            echo '<div class="wc-loyalty-shipping-message">';
+            echo __('Free shipping applied from your loyalty program rewards!', 'wc-loyalty-gamification');
+            echo '</div>';
+        }
+    }
+    
+    /**
+     * Custom label for loyalty coupons
+     */
+    public function custom_coupon_label($label, $coupon) {
+        $coupon_id = $coupon->get_id();
+        $is_loyalty_coupon = get_post_meta($coupon_id, '_wc_loyalty_coupon', true);
+        
+        if ($is_loyalty_coupon === 'yes') {
+            return $label . ' <span class="loyalty-coupon-label">(' . __('Loyalty Reward', 'wc-loyalty-gamification') . ')</span>';
+        }
+        
+        return $label;
+    }
+    
+    /**
+     * Special handler for 2000 points - premium discount reward
      * 
      * @param int $user_id User ID
      */
-    /**
- * Handler pentru când utilizatorul atinge exact 2000 de puncte
- */
-public function handle_free_product_eligibility($user_id) {
-    // Asigură-te că avem un tier de 2000 de puncte
-    $reward_tiers = unserialize(get_option('wc_loyalty_reward_tiers'));
-    
-    // Verifică dacă există tier-ul de 2000 de puncte și actualizează-l pentru discount
-    if (!isset($reward_tiers[2000]) || $reward_tiers[2000]['type'] !== 'discount') {
-        // Creează tier-ul pentru discount de 60%
-        $reward_tiers[2000] = array('type' => 'discount', 'value' => 60);
+    public function handle_premium_discount_eligibility($user_id) {
+        // Make sure we have the 2000 points tier
+        $reward_tiers = unserialize(get_option('wc_loyalty_reward_tiers'));
+        
+        // Create or update the 2000 tier for 60% discount
+        $reward_tiers[2000] = array('type' => 'discount', 'value' => 60, 'max_order' => 400);
         update_option('wc_loyalty_reward_tiers', serialize($reward_tiers));
-    }
-    
-    // Generează cupon pentru discount de 60%
-    $coupon_code = $this->generate_discount_coupon($user_id, 60, 400);
-    
-    if ($coupon_code) {
-        // Stochează codul cuponului
-        $this->store_user_coupon(
-            $user_id, 
-            $coupon_code, 
-            60, // 60% reducere
-            '+30 days', 
-            2000, // tier
-            'discount' // tip de cupon
-        );
         
-        // Stochează notificarea
-        $this->store_user_notification(
-            $user_id, 
-            'discount', 
-            __('You\'ve earned a 60% discount for orders up to 400 lei! Use the coupon code at checkout.', 'wc-loyalty-gamification')
-        );
+        // Generate 60% discount coupon with 400 lei limit
+        $coupon_code = $this->generate_discount_coupon($user_id, 60, 400);
         
-        // Marchează recompensa ca fiind disponibilă pentru ciclul curent
-        $cycle_level = WC_Loyalty()->points->get_user_cycle_level($user_id);
-        $discount_key = 'discount60_available_cycle_' . $cycle_level;
-        update_user_meta($user_id, $discount_key, 'yes');
-        
-        error_log("Utilizatorul $user_id a primit cupon pentru discount de 60%: $coupon_code");
-    }
-}
-
-    /**
-     * Generează cupon pentru produs gratuit
-     * 
-     * @param int $user_id User ID
-     * @return string|bool Coupon code or false on failure
-     */
-    private function generate_free_product_coupon($user_id) {
-        $user = get_user_by('id', $user_id);
-        $coupon_code = 'FREEPROD' . strtoupper(substr(md5(uniqid(mt_rand(), true)), 0, 8));
-        
-        // Obține produsele gratuite disponibile
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'wc_loyalty_free_products';
-        $free_products = $wpdb->get_col("SELECT product_id FROM $table_name");
-        
-        if (empty($free_products)) {
-            error_log('No free products defined for free product coupon');
-            return false;
-        }
-        
-        $coupon = array(
-            'post_title' => $coupon_code,
-            'post_content' => __('Loyalty program free product coupon', 'wc-loyalty-gamification'),
-            'post_status' => 'publish',
-            'post_author' => 1,
-            'post_type' => 'shop_coupon'
-        );
-        
-        $coupon_id = wp_insert_post($coupon);
-        
-        if ($coupon_id) {
-            // Configurează datele cuponului
-            update_post_meta($coupon_id, 'discount_type', 'percent');
-            update_post_meta($coupon_id, 'coupon_amount', 100); // 100% reducere
-            update_post_meta($coupon_id, 'individual_use', 'yes');
-            update_post_meta($coupon_id, 'usage_limit', '1');
-            update_post_meta($coupon_id, 'expiry_date', date('Y-m-d', strtotime('+30 days')));
-            update_post_meta($coupon_id, 'apply_before_tax', 'yes');
-            update_post_meta($coupon_id, 'free_shipping', 'no');
-            update_post_meta($coupon_id, 'product_ids', implode(',', $free_products)); // Limitează la produsele gratuite
-            update_post_meta($coupon_id, 'customer_email', array($user->user_email));
-            update_post_meta($coupon_id, 'minimum_amount', '0');
-            update_post_meta($coupon_id, 'maximum_amount', '');
-            update_post_meta($coupon_id, 'exclude_sale_items', 'no');
+        if ($coupon_code) {
+            // Store coupon code
+            $this->store_user_coupon(
+                $user_id, 
+                $coupon_code, 
+                60, // 60% discount
+                '+30 days', 
+                2000, // tier
+                'discount' // coupon type
+            );
             
-            // Adaugă și metadate speciale pentru a marca ca fiind cupon pentru produs gratuit
-            update_post_meta($coupon_id, '_wc_loyalty_free_product_coupon', 'yes');
-            update_post_meta($coupon_id, '_wc_loyalty_user_id', $user_id);
+            // Store notification
+            $this->store_user_notification(
+                $user_id, 
+                'discount', 
+                __('You\'ve earned a 60% discount for orders up to 400 lei! Use the coupon code at checkout.', 'wc-loyalty-gamification')
+            );
             
-            return $coupon_code;
+            // Mark reward as available for the current cycle
+            $cycle_level = WC_Loyalty()->points->get_user_cycle_level($user_id);
+            $discount_key = 'discount60_available_cycle_' . $cycle_level;
+            update_user_meta($user_id, $discount_key, 'yes');
         }
-        
-        return false;
     }
     
     /**
@@ -191,17 +125,15 @@ public function handle_free_product_eligibility($user_id) {
         $display_points = WC_Loyalty()->points->get_user_display_points($user_id);
         
         foreach ($reward_tiers as $tier => $reward) {
-            // Procesează automat recompensele non-free product și de sub 2000 puncte
-            if (($tier <= $points || $tier <= $display_points) && ($reward['type'] !== 'free_product' || $tier !== 2000)) {
-                // Dacă această recompensă nu a fost deja solicitată
+            // Process rewards automatically (except for 2000 points tier which is handled separately)
+            if (($tier <= $points || $tier <= $display_points) && $tier !== 2000) {
+                // If this reward hasn't been claimed yet
                 if (!isset($claimed_rewards[$tier])) {
                     $this->process_reward($user_id, $tier, $reward);
                     
-                    // Marchează recompensa ca solicitată
+                    // Mark reward as claimed
                     $claimed_rewards[$tier] = current_time('mysql');
                     $this->update_rewards_claimed($user_id, $claimed_rewards);
-                    
-                    error_log("Reward tier $tier automatically claimed by user $user_id");
                 }
             }
         }
@@ -239,7 +171,7 @@ public function handle_free_product_eligibility($user_id) {
     private function process_reward($user_id, $tier, $reward) {
         $user = get_user_by('id', $user_id);
         
-        // Verifică dacă utilizatorul are deja un cupon activ pentru acest tier
+        // Check if user already has an active coupon for this tier
         $user_coupons = $this->get_user_coupons($user_id);
         $tier_already_processed = false;
         
@@ -250,51 +182,24 @@ public function handle_free_product_eligibility($user_id) {
             }
         }
         
-        // Procesează doar dacă tier-ul nu a fost procesat încă
+        // Only process if tier hasn't been processed yet
         if (!$tier_already_processed) {
             switch ($reward['type']) {
                 case 'discount':
-                    // Generează codul cuponului
-                    $coupon_code = $this->generate_discount_coupon($user_id, $reward['value']);
+                    // Generate coupon code
+                    $max_order = isset($reward['max_order']) ? $reward['max_order'] : 0;
+                    $coupon_code = $this->generate_discount_coupon($user_id, $reward['value'], $max_order);
                     
-                    // Stochează codul cuponului cu informațiile tier-ului
+                    // Store coupon code with tier info
                     $this->store_user_coupon($user_id, $coupon_code, $reward['value'], '+30 days', $tier, 'discount');
                     break;
                     
                 case 'free_shipping':
-                    // Activează transportul gratuit
+                    // Enable free shipping
                     update_user_meta($user_id, '_wc_loyalty_free_shipping', 'yes');
                     
-                    // Stochează notificarea
+                    // Store notification
                     $this->store_user_notification($user_id, 'free_shipping', __('You\'ve earned free shipping on your next order!', 'wc-loyalty-gamification'));
-                    break;
-                    
-                case 'free_product':
-                    // Dacă nu este tier-ul de 2000, procesează normal
-                    // (Tier-ul de 2000 este procesat special prin handle_free_product_eligibility)
-                    if ($tier !== 2000) {
-                        // Generează cupon pentru produsul gratuit
-                        $coupon_code = $this->generate_free_product_coupon($user_id);
-                        
-                        if ($coupon_code) {
-                            // Stochează codul cuponului
-                            $this->store_user_coupon(
-                                $user_id, 
-                                $coupon_code, 
-                                100, // 100% reducere
-                                '+30 days', 
-                                $tier,
-                                'free_product' // tip special de cupon
-                            );
-                            
-                            // Stochează notificarea
-                            $this->store_user_notification(
-                                $user_id, 
-                                'free_product', 
-                                __('You\'ve earned a free product! Use the coupon code to claim one of our selected products.', 'wc-loyalty-gamification')
-                            );
-                        }
-                    }
                     break;
             }
         }
@@ -310,18 +215,18 @@ public function handle_free_product_eligibility($user_id) {
             $user_coupons = array();
         }
         
-        // Adaugă noul cupon
+        // Add new coupon
         $user_coupons[] = array(
             'code' => $coupon_code,
             'discount' => $discount_value,
             'created' => current_time('mysql'),
             'expires' => date('Y-m-d H:i:s', strtotime($expiry)),
             'is_used' => false,
-            'tier' => $tier,  // Stochează informațiile tier-ului
-            'type' => $coupon_type // Adaugă tipul cuponului
+            'tier' => $tier,
+            'type' => $coupon_type
         );
         
-        // Salvează cupoanele actualizate
+        // Save updated coupons
         update_user_meta($user_id, '_wc_loyalty_coupons', $user_coupons);
     }
 
@@ -386,9 +291,10 @@ public function handle_free_product_eligibility($user_id) {
      *
      * @param int $user_id User ID
      * @param int $discount_value Discount percentage
+     * @param int $max_order Maximum order value for the discount
      * @return string Coupon code
      */
-    private function generate_discount_coupon($user_id, $discount_value) {
+    private function generate_discount_coupon($user_id, $discount_value, $max_order = 0) {
         $user = get_user_by('id', $user_id);
         $coupon_code = 'LOYALTY' . strtoupper(substr(md5(uniqid(mt_rand(), true)), 0, 8));
         
@@ -409,9 +315,17 @@ public function handle_free_product_eligibility($user_id) {
             update_post_meta($coupon_id, 'individual_use', 'yes');
             update_post_meta($coupon_id, 'usage_limit', '1');
             update_post_meta($coupon_id, 'expiry_date', date('Y-m-d', strtotime('+30 days')));
-            update_post_meta($coupon_id, 'apply_before_tax', 'no'); // Changed to 'no' for better discount calculation
+            update_post_meta($coupon_id, 'apply_before_tax', 'no');
             update_post_meta($coupon_id, 'free_shipping', 'no');
             update_post_meta($coupon_id, 'customer_email', array($user->user_email));
+            
+            // Mark as loyalty coupon
+            update_post_meta($coupon_id, '_wc_loyalty_coupon', 'yes');
+            
+            // Set maximum order value if provided
+            if ($max_order > 0) {
+                update_post_meta($coupon_id, 'maximum_amount', $max_order);
+            }
         }
         
         return $coupon_code;
@@ -425,8 +339,6 @@ public function handle_free_product_eligibility($user_id) {
      * @param array $data Additional data
      */
     public function send_reward_email($email, $reward_type, $data = array()) {
-        error_log('Attempting to send reward email to: ' . $email . ' of type: ' . $reward_type);
-        
         $subject = '';
         $message = '';
         $headers = array('Content-Type: text/html; charset=UTF-8');
@@ -435,7 +347,6 @@ public function handle_free_product_eligibility($user_id) {
         $template_path = WC_LOYALTY_PLUGIN_DIR . 'templates/emails/reward-' . $reward_type . '.php';
         
         if (!file_exists($template_path)) {
-            error_log('Email template not found: ' . $template_path);
             return false;
         }
         
@@ -455,16 +366,9 @@ public function handle_free_product_eligibility($user_id) {
             case 'free_shipping':
                 $subject = __('You\'ve earned free shipping!', 'wc-loyalty-gamification');
                 break;
-                
-            case 'free_product':
-                $subject = __('You\'ve earned a free product!', 'wc-loyalty-gamification');
-                break;
         }
         
-        $result = wp_mail($email, $subject, $message, $headers);
-        error_log('Email send result: ' . ($result ? 'Success' : 'Failed'));
-        
-        return $result;
+        return wp_mail($email, $subject, $message, $headers);
     }
     
     /**
@@ -492,10 +396,6 @@ public function handle_free_product_eligibility($user_id) {
                 
             case 'free_shipping':
                 // No additional placeholders
-                break;
-                
-            case 'free_product':
-                $placeholders['{free_product_url}'] = wc_get_account_endpoint_url('loyalty-rewards') . '#claim-free-product';
                 break;
         }
         
@@ -555,7 +455,7 @@ public function handle_free_product_eligibility($user_id) {
         $next_tier = null;
         $next_points = PHP_INT_MAX;
         
-        // First check if we're close to 2000 (the special free product tier)
+        // First check if we're close to 2000 (the special premium discount tier)
         if ($current_points < 2000 && !isset($reward_tiers[2000])) {
             // If no 2000 tier exists but we're below 2000, use that as the target
             $next_tier = 2000;
@@ -615,12 +515,12 @@ public function handle_free_product_eligibility($user_id) {
         $display_points = WC_Loyalty()->points->get_user_display_points($user_id);
         $reward_tiers = unserialize(get_option('wc_loyalty_reward_tiers'));
         
-        // Special case for exactly 2000 points - free product notification
+        // Special case for exactly 2000 points - premium discount notification
         if ($display_points == 2000) {
             wc_print_notice(
                 sprintf(
-                    __('Congratulations! You\'ve reached 2000 points and can claim a free product! <a href="%s">Claim Now</a>', 'wc-loyalty-gamification'),
-                    wc_get_account_endpoint_url('loyalty-rewards') . '#claim-free-product'
+                    __('Congratulations! You\'ve reached 2000 points and earned a 60%% discount coupon for orders up to 400 lei! <a href="%s">View Your Coupons</a>', 'wc-loyalty-gamification'),
+                    wc_get_account_endpoint_url('loyalty-rewards')
                 ),
                 'success'
             );
@@ -635,7 +535,7 @@ public function handle_free_product_eligibility($user_id) {
             $reward_type = '';
             
             if ($next_tier == 2000) {
-                $reward_type = __('a free product', 'wc-loyalty-gamification');
+                $reward_type = __('a 60% discount coupon', 'wc-loyalty-gamification');
             } else if (isset($reward_tiers[$next_tier])) {
                 switch ($reward_tiers[$next_tier]['type']) {
                     case 'discount':
@@ -643,9 +543,6 @@ public function handle_free_product_eligibility($user_id) {
                         break;
                     case 'free_shipping':
                         $reward_type = __('free shipping', 'wc-loyalty-gamification');
-                        break;
-                    case 'free_product':
-                        $reward_type = __('a free product', 'wc-loyalty-gamification');
                         break;
                 }
             }
@@ -683,69 +580,5 @@ public function handle_free_product_eligibility($user_id) {
             // Save updated coupons
             update_user_meta($user_id, '_wc_loyalty_coupons', $user_coupons);
         }
-    }
-    
-    /**
-     * Check if a user can claim a free product.
-     * 
-     * @param int $user_id User ID
-     * @return bool True if eligible
-     */
-    public function can_claim_free_product($user_id) {
-        // Check if display points are exactly 2000
-        $display_points = WC_Loyalty()->points->get_user_display_points($user_id);
-        
-        if ($display_points == 2000) {
-            // Verify we haven't already claimed this reward in this cycle
-            $claimed_rewards = $this->get_rewards_claimed($user_id);
-            $cycle_level = WC_Loyalty()->points->get_user_cycle_level($user_id);
-            
-            // Check if we've claimed the 2000-point reward in this cycle
-            $claim_key = '2000_cycle_' . $cycle_level;
-            
-            if (!isset($claimed_rewards[$claim_key])) {
-                return true;
-            }
-        }
-        
-        return false;
-    }
-    
-    /**
-     * Mark a free product as claimed for the current cycle.
-     * 
-     * @param int $user_id User ID
-     * @return bool Success
-     */
-    public function mark_free_product_claimed($user_id) {
-        $claimed_rewards = $this->get_rewards_claimed($user_id);
-        $cycle_level = WC_Loyalty()->points->get_user_cycle_level($user_id);
-        
-        // Create a unique key for this cycle
-        $claim_key = '2000_cycle_' . $cycle_level;
-        
-        // Mark as claimed
-        $claimed_rewards[$claim_key] = current_time('mysql');
-        
-        // Save claimed rewards
-        return $this->update_rewards_claimed($user_id, $claimed_rewards);
-    }
-
-    /**
-     * Verifică dacă utilizatorul are un cupon activ pentru produs gratuit
-     */
-    public function has_free_product_coupon($user_id) {
-        $user_coupons = $this->get_user_coupons($user_id);
-        
-        foreach ($user_coupons as $coupon) {
-            if (isset($coupon['type']) && $coupon['type'] === 'free_product' && !$coupon['is_used']) {
-                // Verifică dacă cuponul este expirat
-                if (strtotime($coupon['expires']) > time()) {
-                    return $coupon['code'];
-                }
-            }
-        }
-        
-        return false;
     }
 }

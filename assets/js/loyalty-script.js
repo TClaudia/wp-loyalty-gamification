@@ -10,8 +10,8 @@
         init: function() {
             this.initModal();
             this.initCircleProgress();
-            this.initClaimProduct();
             this.initCoupons();
+            this.initNotifications();
         },
 
         // Initialize modal functionality
@@ -92,57 +92,54 @@
                 }
             });
         },
-
-        // Initialize claim product functionality
-        initClaimProduct: function() {
-            $(document).on('click', '.claim-free-product', function(e) {
+        
+        // Initialize coupon functionality
+        initCoupons: function() {
+            // Bind apply coupon button in cart
+            $(document).on('click', '.apply-loyalty-coupon', function(e) {
                 e.preventDefault();
                 
                 var $button = $(this);
-                var productId = $button.data('product-id');
+                var couponCode = $button.data('coupon');
                 
-                $button.prop('disabled', true).text('Processing...');
+                // Show processing status
+                $button.prop('disabled', true);
+                $button.text('Applying...');
                 
+                // Make AJAX request to apply coupon
                 $.ajax({
                     type: 'POST',
                     url: wcLoyaltyData.ajaxurl,
                     data: {
-                        action: 'claim_loyalty_reward',
+                        action: 'apply_loyalty_coupon',
                         nonce: wcLoyaltyData.nonce,
-                        reward_type: 'free_product',
-                        product_id: productId
+                        coupon_code: couponCode
                     },
                     success: function(response) {
                         if (response.success) {
                             // Show success message
                             WCLoyalty.showNotification(response.data.message, 'success');
                             
-                            // Redirect if provided
-                            if (response.data.redirect) {
-                                setTimeout(function() {
-                                    window.location.href = response.data.redirect;
-                                }, 1500);
-                            } else {
-                                $button.text('Claimed!').addClass('claimed');
-                                
-                                // Refresh page after a delay
-                                setTimeout(function() {
-                                    window.location.reload();
-                                }, 2000);
-                            }
+                            // Reload the page to reflect changes
+                            window.location.reload();
                         } else {
                             // Show error message
-                            WCLoyalty.showNotification(response.data.message, 'error');
-                            $button.prop('disabled', false).text('Claim This');
+                            WCLoyalty.showNotification(response.data.message || 'Failed to apply coupon', 'error');
+                            $button.prop('disabled', false);
+                            $button.text('Apply');
                         }
                     },
                     error: function() {
                         // Show error message
                         WCLoyalty.showNotification('An error occurred. Please try again.', 'error');
-                        $button.prop('disabled', false).text('Claim This');
+                        $button.prop('disabled', false);
+                        $button.text('Apply');
                     }
                 });
             });
+            
+            // Bind copy buttons
+            this.bindCopyButtons();
         },
         
         // Bind copy buttons directly
@@ -174,7 +171,7 @@
             });
         },
         
-        // A very simple copy method that works in most browsers
+        // A simple copy method that works in most browsers
         simpleCopyToClipboard: function(text) {
             // Create textarea
             var textarea = document.createElement('textarea');
@@ -194,9 +191,12 @@
             document.body.removeChild(textarea);
         },
         
-        // Initialize coupon functionality
-        initCoupons
-                
+        // Initialize notifications
+        initNotifications: function() {
+            // Add notification handlers if needed
+            // Currently handled by showNotification
+        },
+        
         // Show notification
         showNotification: function(message, type) {
             // Remove any existing notifications
@@ -232,8 +232,5 @@
             WCLoyalty.bindCopyButtons();
         }, 500);
     });
-
-    
-
 
 })(jQuery);

@@ -32,6 +32,7 @@ class WC_Loyalty_Install {
         // Flush rewrite rules
         add_action('init', function() {
             add_rewrite_endpoint('loyalty-points', EP_ROOT | EP_PAGES);
+            add_rewrite_endpoint('loyalty-rewards', EP_ROOT | EP_PAGES);
             flush_rewrite_rules();
         }, 20);
     }
@@ -69,16 +70,6 @@ class WC_Loyalty_Install {
         ) $charset_collate;";
         
         dbDelta($sql);
-        
-        // Create free products table
-        $table_free_products = $wpdb->prefix . 'wc_loyalty_free_products';
-        $sql = "CREATE TABLE $table_free_products (
-            id bigint(20) NOT NULL AUTO_INCREMENT,
-            product_id bigint(20) NOT NULL,
-            PRIMARY KEY  (id)
-        ) $charset_collate;";
-        
-        dbDelta($sql);
     }
     
     /**
@@ -88,39 +79,42 @@ class WC_Loyalty_Install {
         // Points settings
         add_option('wc_loyalty_points_per_euro', 1);
         add_option('wc_loyalty_points_for_review', 50);
-            add_option('wc_loyalty_tiers', serialize(array(
-        'bronze' => array(
-            'name' => 'Bronze',
-            'min_points' => 0,
-            'color' => '#cd7f32',
-            'perks' => 'Welcome to our loyalty program!'
-        ),
-        'silver' => array(
-            'name' => 'Silver',
-            'min_points' => 500,
-            'color' => '#c0c0c0',
-            'perks' => 'Enjoy special birthday offers and early sale access.'
-        ),
-        'gold' => array(
-            'name' => 'Gold',
-            'min_points' => 1000,
-            'color' => '#ffd700',
-            'perks' => 'Exclusive promotions and priority customer service.'
-        ),
-        'platinum' => array(
-            'name' => 'Platinum', 
-            'min_points' => 2000,
-            'color' => '#e5e4e2',
-            'perks' => 'VIP service and exclusive product access.'
-        )
-    )));
+        add_option('wc_loyalty_premium_discount_max', 400);
+            
+        // Membership tiers
+        add_option('wc_loyalty_tiers', serialize(array(
+            'bronze' => array(
+                'name' => 'Bronze',
+                'min_points' => 0,
+                'color' => '#cd7f32',
+                'perks' => 'Welcome to our loyalty program!'
+            ),
+            'silver' => array(
+                'name' => 'Silver',
+                'min_points' => 500,
+                'color' => '#c0c0c0',
+                'perks' => 'Enjoy special birthday offers and early sale access.'
+            ),
+            'gold' => array(
+                'name' => 'Gold',
+                'min_points' => 1000,
+                'color' => '#ffd700',
+                'perks' => 'Exclusive promotions and priority customer service.'
+            ),
+            'platinum' => array(
+                'name' => 'Platinum', 
+                'min_points' => 2000,
+                'color' => '#e5e4e2',
+                'perks' => 'VIP service and exclusive product access.'
+            )
+        )));
     
-        // Reward tiers
+        // Reward tiers with premium discount at 2000
         add_option('wc_loyalty_reward_tiers', serialize(array(
             500 => array('type' => 'discount', 'value' => 20),
             1000 => array('type' => 'discount', 'value' => 40),
             1500 => array('type' => 'free_shipping', 'value' => true),
-            2000 => array('type' => 'free_product', 'value' => true)
+            2000 => array('type' => 'discount', 'value' => 60, 'max_order' => 400)
         )));
     }
     

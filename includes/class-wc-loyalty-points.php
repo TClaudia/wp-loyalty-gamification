@@ -40,7 +40,6 @@ class WC_Loyalty_Points {
         // Avoid processing the same order multiple times
         $already_processed = get_post_meta($order_id, '_loyalty_points_awarded', true);
         if ($already_processed) {
-            error_log("POINTS DEBUG: Order $order_id already processed for points");
             return;
         }
         
@@ -56,8 +55,6 @@ class WC_Loyalty_Points {
         $order_total = $order->get_total();
         $points_per_euro = get_option('wc_loyalty_points_per_euro', 1);
         $points_earned = floor($order_total * $points_per_euro);
-        
-        error_log("POINTS DEBUG: Order $order_id - Total: $order_total, Points earned: $points_earned");
         
         // Add points to user account
         $this->add_points($user_id, $points_earned, sprintf(
@@ -322,8 +319,6 @@ class WC_Loyalty_Points {
             $already_processed = get_post_meta($order_id, '_loyalty_points_awarded', true);
             if (!$already_processed) {
                 $this->add_points_for_purchase($order_id);
-            } else {
-                error_log("POINTS DEBUG: Skipping refresh_points for order $order_id - already processed");
             }
         }
     }
@@ -365,6 +360,10 @@ class WC_Loyalty_Points {
         $points = $this->get_user_points($user_id);
         $tiers = unserialize(get_option('wc_loyalty_tiers', 'a:0:{}'));
         
+        if (empty($tiers)) {
+            return '';
+        }
+        
         // Default to lowest tier
         $current_tier = array_key_first($tiers);
         
@@ -387,9 +386,23 @@ class WC_Loyalty_Points {
      */
     public function get_user_tier_data($user_id) {
         $tier_key = $this->get_user_tier($user_id);
+        if (empty($tier_key)) {
+            return array(
+                'name' => 'Bronze',
+                'min_points' => 0,
+                'color' => '#cd7f32',
+                'perks' => 'Welcome to our loyalty program!'
+            );
+        }
+        
         $tiers = unserialize(get_option('wc_loyalty_tiers', 'a:0:{}'));
         
-        return isset($tiers[$tier_key]) ? $tiers[$tier_key] : array();
+        return isset($tiers[$tier_key]) ? $tiers[$tier_key] : array(
+            'name' => 'Bronze',
+            'min_points' => 0,
+            'color' => '#cd7f32',
+            'perks' => 'Welcome to our loyalty program!'
+        );
     }
     
     /**
@@ -400,6 +413,10 @@ class WC_Loyalty_Points {
      */
     public function get_next_tier_data($user_id) {
         $current_tier = $this->get_user_tier($user_id);
+        if (empty($current_tier)) {
+            return null;
+        }
+        
         $tiers = unserialize(get_option('wc_loyalty_tiers', 'a:0:{}'));
         $tier_keys = array_keys($tiers);
         

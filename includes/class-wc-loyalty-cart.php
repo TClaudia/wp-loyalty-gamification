@@ -38,7 +38,13 @@ class WC_Loyalty_Cart {
         }
         
         $user_id = get_current_user_id();
-        $user_coupons = WC_Loyalty()->rewards->get_user_coupons($user_id);
+        
+        // Check if WC_Loyalty is properly initialized before using it
+        if (function_exists('WC_Loyalty') && WC_Loyalty() && WC_Loyalty()->rewards) {
+            $user_coupons = WC_Loyalty()->rewards->get_user_coupons($user_id);
+        } else {
+            return; // Exit if WC_Loyalty or rewards component is not available
+        }
         
         // Filter out used and expired coupons
         $active_coupons = array_filter($user_coupons, function($coupon) {
@@ -58,11 +64,15 @@ class WC_Loyalty_Cart {
             <div class="wc-loyalty-cart-coupon-list">
                 <?php foreach ($active_coupons as $coupon) : 
                     $is_applied = in_array($coupon['code'], $applied_coupons);
+                    $is_premium = isset($coupon['tier']) && $coupon['tier'] == 2000;
                 ?>
-                    <div class="wc-loyalty-cart-coupon <?php echo $is_applied ? 'applied' : ''; ?>">
+                    <div class="wc-loyalty-cart-coupon <?php echo $is_applied ? 'applied' : ''; ?> <?php echo $is_premium ? 'premium' : ''; ?>">
                         <div class="wc-loyalty-cart-coupon-info">
                             <span class="wc-loyalty-cart-coupon-discount">
                                 <?php printf(esc_html__('%d%% OFF', 'wc-loyalty-gamification'), $coupon['discount']); ?>
+                                <?php if ($is_premium): ?>
+                                    <span class="premium-label"><?php esc_html_e('Premium', 'wc-loyalty-gamification'); ?></span>
+                                <?php endif; ?>
                             </span>
                             <span class="wc-loyalty-cart-coupon-code"><?php echo esc_html($coupon['code']); ?></span>
                         </div>
@@ -114,7 +124,7 @@ class WC_Loyalty_Cart {
         
         if ($result) {
             // Mark the coupon as used in user meta
-            if (method_exists(WC_Loyalty()->rewards, 'mark_coupon_as_used')) {
+            if (function_exists('WC_Loyalty') && WC_Loyalty() && WC_Loyalty()->rewards) {
                 WC_Loyalty()->rewards->mark_coupon_as_used($coupon_code, get_current_user_id());
             }
             

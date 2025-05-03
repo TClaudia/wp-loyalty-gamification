@@ -9,7 +9,7 @@ $user_id = get_current_user_id();
 $user_coupons = WC_Loyalty()->rewards->get_user_coupons($user_id);
 $user_notifications = WC_Loyalty()->rewards->get_user_notifications($user_id);
 
-// Obține valorile corecte ale punctelor
+// Get correct point values
 $total_points = WC_Loyalty()->points->get_user_points($user_id);
 $display_points = WC_Loyalty()->points->get_user_display_points($user_id);
 $cycle_level = WC_Loyalty()->points->get_user_cycle_level($user_id);
@@ -31,10 +31,10 @@ $next_tier = WC_Loyalty()->rewards->get_next_reward_tier($display_points, $rewar
         <h2><?php esc_html_e('Your Loyalty Points', 'wc-loyalty-gamification'); ?></h2>
         
         <?php
-        // Calculează progresul procentual spre 2000 de puncte
+        // Calculate percentage progress to 2000 points
         $progress = ($display_points / 2000) * 100;
         
-        // Limitează la 100%
+        // Limit to 100%
         $progress = min($progress, 100);
         ?>
         
@@ -51,8 +51,8 @@ $next_tier = WC_Loyalty()->rewards->get_next_reward_tier($display_points, $rewar
             <?php endif; ?>
             
             <?php if ($display_points == 2000) : ?>
-                <div class="wc-loyalty-points-next wc-loyalty-free-product-alert">
-                    <?php esc_html_e('Congratulations! You\'ve reached 2000 points! Check your coupons for a free product code.', 'wc-loyalty-gamification'); ?>
+                <div class="wc-loyalty-points-next">
+                    <?php esc_html_e('Congratulations! You\'ve reached 2000 points! Check your coupons for a 60% discount code.', 'wc-loyalty-gamification'); ?>
                 </div>
             <?php elseif ($next_tier) : ?>
                 <div class="wc-loyalty-points-next">
@@ -67,10 +67,10 @@ $next_tier = WC_Loyalty()->rewards->get_next_reward_tier($display_points, $rewar
             <?php else : ?>
                 <div class="wc-loyalty-points-next">
                     <?php 
-                    $points_to_free_product = 2000 - $display_points;
+                    $points_to_premium = 2000 - $display_points;
                     printf(
-                        esc_html__('You need %s more points to reach 2000 and earn a free product!', 'wc-loyalty-gamification'),
-                        '<strong>' . esc_html($points_to_free_product) . '</strong>'
+                        esc_html__('You need %s more points to reach 2000 and earn a premium 60%% discount!', 'wc-loyalty-gamification'),
+                        '<strong>' . esc_html($points_to_premium) . '</strong>'
                     ); 
                     ?>
                 </div>
@@ -84,23 +84,22 @@ $next_tier = WC_Loyalty()->rewards->get_next_reward_tier($display_points, $rewar
                 <?php foreach ($user_coupons as $index => $coupon) : 
                     $coupon_expired = strtotime($coupon['expires']) < time();
                     $coupon_class = $coupon['is_used'] ? 'used' : ($coupon_expired ? 'expired' : 'active');
-                    $is_free_product = isset($coupon['type']) && $coupon['type'] === 'free_product';
+                    $is_premium = isset($coupon['tier']) && $coupon['tier'] === 2000;
                 ?>
-                    <div class="wc-loyalty-coupon <?php echo esc_attr($coupon_class); ?> <?php echo $is_free_product ? 'free-product-coupon' : ''; ?>">
+                    <div class="wc-loyalty-coupon <?php echo esc_attr($coupon_class); ?> <?php echo $is_premium ? 'premium-coupon' : ''; ?>">
                         <div class="wc-loyalty-coupon-discount">
-                            <?php if ($is_free_product) : ?>
-                                <?php esc_html_e('FREE PRODUCT', 'wc-loyalty-gamification'); ?>
-                            <?php else : ?>
-                                <?php printf(esc_html__('%d%% OFF', 'wc-loyalty-gamification'), $coupon['discount']); ?>
+                            <?php printf(esc_html__('%d%% OFF', 'wc-loyalty-gamification'), $coupon['discount']); ?>
+                            <?php if ($is_premium) : ?>
+                                <span class="premium-label"><?php esc_html_e('Premium Reward', 'wc-loyalty-gamification'); ?></span>
                             <?php endif; ?>
                         </div>
                         <div class="wc-loyalty-coupon-code">
                             <?php echo esc_html($coupon['code']); ?>
                             <button class="wc-loyalty-copy-code" data-code="<?php echo esc_attr($coupon['code']); ?>"><?php esc_html_e('Copy', 'wc-loyalty-gamification'); ?></button>
                         </div>
-                        <?php if ($is_free_product) : ?>
+                        <?php if ($is_premium) : ?>
                             <div class="wc-loyalty-coupon-info">
-                                <?php esc_html_e('Apply to get a free product from our selection', 'wc-loyalty-gamification'); ?>
+                                <?php esc_html_e('Valid for orders up to 400 lei', 'wc-loyalty-gamification'); ?>
                             </div>
                         <?php endif; ?>
                         <div class="wc-loyalty-coupon-expiry">
@@ -141,8 +140,8 @@ $next_tier = WC_Loyalty()->rewards->get_next_reward_tier($display_points, $rewar
                         $class = $is_achieved ? 'achieved' : '';
                         $class .= $is_claimed ? ' claimed' : '';
                         
-                        // Highlight the free product tier at 2000 points
-                        if ($tier == 2000 && $reward['type'] == 'free_product' && $display_points == 2000 && !$is_claimed) {
+                        // Highlight the premium discount tier at 2000 points
+                        if ($tier == 2000 && $reward['type'] == 'discount' && $display_points == 2000 && !$is_claimed) {
                             $class .= ' highlight-reward';
                         }
                     ?>
@@ -153,16 +152,20 @@ $next_tier = WC_Loyalty()->rewards->get_next_reward_tier($display_points, $rewar
                                 <?php
                                 switch ($reward['type']) {
                                     case 'discount':
-                                        printf(
-                                            esc_html__('%d%% Discount', 'wc-loyalty-gamification'),
-                                            esc_html($reward['value'])
-                                        );
+                                        if ($tier == 2000) {
+                                            printf(
+                                                esc_html__('%d%% Discount (up to 400 lei)', 'wc-loyalty-gamification'),
+                                                esc_html($reward['value'])
+                                            );
+                                        } else {
+                                            printf(
+                                                esc_html__('%d%% Discount', 'wc-loyalty-gamification'),
+                                                esc_html($reward['value'])
+                                            );
+                                        }
                                         break;
                                     case 'free_shipping':
                                         esc_html_e('Free Shipping', 'wc-loyalty-gamification');
-                                        break;
-                                    case 'free_product':
-                                        esc_html_e('Free Product', 'wc-loyalty-gamification');
                                         break;
                                 }
                                 ?>
@@ -170,9 +173,9 @@ $next_tier = WC_Loyalty()->rewards->get_next_reward_tier($display_points, $rewar
                             
                             <?php if ($is_claimed) : ?>
                                 <span class="claimed-label"><?php esc_html_e('Claimed', 'wc-loyalty-gamification'); ?></span>
-                            <?php elseif ($tier == 2000 && $reward['type'] == 'free_product' && $display_points == 2000) : ?>
-                                <a href="<?php echo esc_url(wc_get_account_endpoint_url('loyalty-rewards') . '#claim-free-product'); ?>" class="claim-now-label">
-                                    <?php esc_html_e('Claim Now', 'wc-loyalty-gamification'); ?>
+                            <?php elseif ($tier == 2000 && $reward['type'] == 'discount' && $display_points == 2000) : ?>
+                                <a href="<?php echo esc_url(wc_get_account_endpoint_url('loyalty-rewards')); ?>" class="claim-now-label">
+                                    <?php esc_html_e('View Coupon', 'wc-loyalty-gamification'); ?>
                                 </a>
                             <?php endif; ?>
                         </li>
