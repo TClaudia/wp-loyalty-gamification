@@ -47,30 +47,47 @@ class WC_Loyalty_Install {
     /**
      * Create database tables.
      */
-    private static function create_tables() {
-        global $wpdb;
-        
-        $wpdb->hide_errors();
-        
-        require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
-        
-        $charset_collate = $wpdb->get_charset_collate();
-        
-        // Create points table
-        $table_name = $wpdb->prefix . 'wc_loyalty_points';
-        $sql = "CREATE TABLE $table_name (
-            id bigint(20) NOT NULL AUTO_INCREMENT,
-            user_id bigint(20) NOT NULL,
-            points int(11) NOT NULL DEFAULT 0,
-            points_history longtext,
-            rewards_claimed longtext,
-            update_date datetime DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY  (id),
-            UNIQUE KEY user_id (user_id)
-        ) $charset_collate;";
-        
-        dbDelta($sql);
-    }
+   private static function create_tables() {
+    global $wpdb;
+    
+    $wpdb->hide_errors();
+    
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    
+    $charset_collate = $wpdb->get_charset_collate();
+    
+    // Create points table
+    $table_name = $wpdb->prefix . 'wc_loyalty_points';
+    $sql = "CREATE TABLE $table_name (
+        id bigint(20) NOT NULL AUTO_INCREMENT,
+        user_id bigint(20) NOT NULL,
+        points int(11) NOT NULL DEFAULT 0,
+        points_history longtext,
+        rewards_claimed longtext,
+        update_date datetime DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY  (id),
+        UNIQUE KEY user_id (user_id)
+    ) $charset_collate;";
+    
+    dbDelta($sql);
+    
+    // Create check-ins table
+    $table_name = $wpdb->prefix . 'wc_loyalty_checkins';
+    $sql = "CREATE TABLE $table_name (
+        id bigint(20) NOT NULL AUTO_INCREMENT,
+        user_id bigint(20) NOT NULL,
+        check_date date NOT NULL,
+        streak_count int(11) NOT NULL DEFAULT 1,
+        points_earned int(11) NOT NULL DEFAULT 0,
+        update_date datetime DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY  (id),
+        UNIQUE KEY user_check_date (user_id, check_date),
+        KEY user_id (user_id),
+        KEY check_date (check_date)
+    ) $charset_collate;";
+    
+    dbDelta($sql);
+}
     
     /**
      * Set default options.

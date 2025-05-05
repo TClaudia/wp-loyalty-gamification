@@ -171,35 +171,64 @@
         },
         
         // Initialize milestone rewards functionality
-        initMilestoneRewards: function() {
-            var self = this;
-            var milestonesContainer = $('#wc-loyalty-milestone-rewards');
-            
-            // Add milestone button
-            $('#wc-loyalty-add-milestone').on('click', function(e) {
-                e.preventDefault();
-                self.addMilestoneReward();
-            });
-            
-            // Remove milestone button (delegated event)
-            milestonesContainer.on('click', '.wc-loyalty-remove-milestone', function(e) {
-                e.preventDefault();
-                $(this).closest('.wc-loyalty-milestone-reward').fadeOut(300, function() {
-                    $(this).remove();
-                    self.updateMilestonesJson();
-                });
-            });
-            
-            // Update JSON when milestone values change
-            milestonesContainer.on('change', '.wc-loyalty-milestone-days, .wc-loyalty-milestone-bonus', function() {
-                self.updateMilestonesJson();
-            });
-            
-            // Form submission handling
-            $('form#wc-loyalty-settings-form').on('submit', function() {
-                self.updateMilestonesJson();
-            });
-        },
+        // Add to the WCLoyaltyAdmin object
+initMilestoneRewards: function() {
+    var self = this;
+    var milestonesContainer = $('#wc-loyalty-milestone-rewards');
+    
+    // Add milestone button
+    $('#wc-loyalty-add-milestone').on('click', function(e) {
+        e.preventDefault();
+        self.addMilestoneReward();
+    });
+    
+    // Remove milestone button (delegated event)
+    milestonesContainer.on('click', '.wc-loyalty-remove-milestone', function(e) {
+        e.preventDefault();
+        $(this).closest('.wc-loyalty-milestone-reward').fadeOut(300, function() {
+            $(this).remove();
+            self.updateMilestonesJson();
+        });
+    });
+    
+    // Update JSON when milestone values change
+    milestonesContainer.on('change', '.wc-loyalty-milestone-days, .wc-loyalty-milestone-bonus', function() {
+        self.updateMilestonesJson();
+    });
+    
+    // Form submission handling
+    $('form#wc-loyalty-settings-form').on('submit', function() {
+        self.updateMilestonesJson();
+    });
+},
+
+// Add a new milestone reward
+addMilestoneReward: function() {
+    var template = $('<div class="wc-loyalty-milestone-reward"></div>');
+    
+    template.append('<input type="number" class="wc-loyalty-milestone-days" value="" placeholder="Days" min="1" step="1" />');
+    template.append('<input type="number" class="wc-loyalty-milestone-bonus" value="" placeholder="Bonus Points" min="1" step="1" />');
+    template.append('<button type="button" class="button wc-loyalty-remove-milestone">Remove</button>');
+    
+    $('#wc-loyalty-milestone-rewards').append(template);
+    this.updateMilestonesJson();
+},
+
+// Update the hidden JSON field with milestone data
+updateMilestonesJson: function() {
+    var milestones = {};
+    
+    $('.wc-loyalty-milestone-reward').each(function() {
+        var days = $(this).find('.wc-loyalty-milestone-days').val();
+        var bonus = $(this).find('.wc-loyalty-milestone-bonus').val();
+        
+        if (days && bonus) {
+            milestones[days] = parseInt(bonus, 10);
+        }
+    });
+    
+    $('#wc_loyalty_milestone_rewards_json').val(JSON.stringify(milestones));
+},
 
         // Add a new milestone reward
         addMilestoneReward: function() {

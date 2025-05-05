@@ -76,10 +76,10 @@ class WC_Loyalty_Checkin {
         $user_id = get_current_user_id();
         $today = current_time('Y-m-d');
         
-        // Check if user already checked in today
+        // Check if user already checked in today - IMPROVED CHECK
         if ($this->has_checked_in_today($user_id)) {
             wp_send_json_error(array(
-                'message' => __('You have already checked in today.', 'wc-loyalty-gamification')
+                'message' => __('You have already checked in today. Come back tomorrow!', 'wc-loyalty-gamification')
             ));
             return;
         }
@@ -87,8 +87,10 @@ class WC_Loyalty_Checkin {
         // Process check-in and calculate streak
         $streak_info = $this->calculate_streak($user_id);
         $streak_count = $streak_info['streak_count'];
-        $base_points = get_option('wc_loyalty_base_checkin_points', 5);
-        $streak_multiplier = get_option('wc_loyalty_streak_multiplier', 0.1);
+        
+        // Get points configuration from settings - CONFIGURABLE POINTS
+        $base_points = intval(get_option('wc_loyalty_base_checkin_points', 5));
+        $streak_multiplier = floatval(get_option('wc_loyalty_streak_multiplier', 0.1));
         
         // Calculate points with streak bonus
         $streak_bonus = floor($base_points * $streak_multiplier * ($streak_count - 1));
@@ -96,17 +98,33 @@ class WC_Loyalty_Checkin {
         
         // Check for milestone rewards
         $milestone_rewards = json_decode(get_option('wc_loyalty_milestone_rewards', '{}'), true);
+        if (empty($milestone_rewards) || !is_array($milestone_rewards)) {
+            $milestone_rewards = array(
+                '7' => 50,   // 7-day streak: 50 bonus points
+                '30' => 200, // 30-day streak: 200 bonus points
+                '90' => 500, // 90-day streak: 500 bonus points
+                '365' => 2000 // 365-day streak: 2000 bonus points
+            );
+        }
+        
         $milestone_bonus = 0;
         $milestone_reached = '';
         
         if (isset($milestone_rewards[$streak_count])) {
-            $milestone_bonus = $milestone_rewards[$streak_count];
+            $milestone_bonus = intval($milestone_rewards[$streak_count]);
             $milestone_reached = $streak_count;
             $points_earned += $milestone_bonus;
         }
         
         // Save check-in data
-        $this->save_checkin($user_id, $streak_count, $points_earned);
+        $saved = $this->save_checkin($user_id, $streak_count, $points_earned);
+        
+        if (!$saved) {
+            wp_send_json_error(array(
+                'message' => __('Failed to save check-in data. Please try again.', 'wc-loyalty-gamification')
+            ));
+            return;
+        }
         
         // Add points to user account
         WC_Loyalty()->points->add_points($user_id, $points_earned, sprintf(
@@ -152,13 +170,14 @@ class WC_Loyalty_Checkin {
         $table_name = $wpdb->prefix . 'wc_loyalty_checkins';
         $today = current_time('Y-m-d');
         
+        // Use direct database query for better performance
         $count = $wpdb->get_var($wpdb->prepare(
             "SELECT COUNT(*) FROM $table_name WHERE user_id = %d AND check_date = %s",
             $user_id,
             $today
         ));
         
-        return $count > 0;
+        return (int)$count > 0;
     }
     
     /**
@@ -225,6 +244,18 @@ class WC_Loyalty_Checkin {
         
         $table_name = $wpdb->prefix . 'wc_loyalty_checkins';
         $today = current_time('Y-m-d');
+        
+        // Make sure user hasn't already checked in (safety check)
+        $existing = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM $table_name WHERE user_id = %d AND check_date = %s",
+            $user_id,
+            $today
+        ));
+        
+        if ($existing) {
+            // User already checked in today
+            return false;
+        }
         
         return $wpdb->insert(
             $table_name,
@@ -304,70 +335,72 @@ class WC_Loyalty_Checkin {
     }
     
     /**
- * Render check-in widget in loyalty modal.
- */
-public function render_checkin_widget() {
-    if (!is_user_logged_in()) {
-        return;
-    }
-    
-    $user_id = get_current_user_id();
-    $streak_info = $this->get_user_streak_info($user_id);
-    $base_points = get_option('wc_loyalty_base_checkin_points', 5);
-    $streak_multiplier = get_option('wc_loyalty_streak_multiplier', 0.1);
-    
-    // Validate milestone rewards first
-    $milestone_rewards_json = get_option('wc_loyalty_milestone_rewards', '{}');
-    if (empty($milestone_rewards_json) || $milestone_rewards_json === '{}') {
-        $milestone_rewards = array(
-            '7' => 50,
-            '30' => 200,
-            '90' => 500,
-            '365' => 2000
-        );
-    } else {
-        $milestone_rewards = json_decode($milestone_rewards_json, true);
-        if (!is_array($milestone_rewards)) {
+     * Render check-in widget in loyalty modal.
+     */
+    public function render_checkin_widget() {
+        if (!is_user_logged_in()) {
+            return;
+        }
+        
+        $user_id = get_current_user_id();
+        $streak_info = $this->get_user_streak_info($user_id);
+        
+        // Get points configuration from settings
+        $base_points = intval(get_option('wc_loyalty_base_checkin_points', 5));
+        $streak_multiplier = floatval(get_option('wc_loyalty_streak_multiplier', 0.1));
+        
+        // Validate milestone rewards first
+        $milestone_rewards_json = get_option('wc_loyalty_milestone_rewards', '{}');
+        if (empty($milestone_rewards_json) || $milestone_rewards_json === '{}') {
             $milestone_rewards = array(
                 '7' => 50,
                 '30' => 200,
                 '90' => 500,
                 '365' => 2000
             );
+        } else {
+            $milestone_rewards = json_decode($milestone_rewards_json, true);
+            if (!is_array($milestone_rewards)) {
+                $milestone_rewards = array(
+                    '7' => 50,
+                    '30' => 200,
+                    '90' => 500,
+                    '365' => 2000
+                );
+            }
         }
-    }
-    
-    // Get next milestone
-    $next_milestone = null;
-    $next_milestone_days = 0;
-    
-    if ($streak_info['streak_count'] > 0) {
-        foreach ($milestone_rewards as $days => $bonus) {
-            if ($days > $streak_info['streak_count']) {
-                if ($next_milestone === null || $days < $next_milestone) {
-                    $next_milestone = $days;
-                    $next_milestone_days = $days - $streak_info['streak_count'];
+        
+        // Get next milestone
+        $next_milestone = null;
+        $next_milestone_days = 0;
+        
+        if ($streak_info['streak_count'] > 0) {
+            foreach ($milestone_rewards as $days => $bonus) {
+                if ($days > $streak_info['streak_count']) {
+                    if ($next_milestone === null || $days < $next_milestone) {
+                        $next_milestone = $days;
+                        $next_milestone_days = $days - $streak_info['streak_count'];
+                    }
                 }
             }
         }
+        
+        // Calculate today's potential points
+        $potential_points = $base_points;
+        if ($streak_info['streak_count'] > 0) {
+            $potential_points += floor($base_points * $streak_multiplier * $streak_info['streak_count']);
+        }
+        
+        // Check if today would reach a milestone
+        $potential_milestone = false;
+        $potential_milestone_bonus = 0;
+        
+        if (isset($milestone_rewards[$streak_info['streak_count'] + 1])) {
+            $potential_milestone = true;
+            $potential_milestone_bonus = $milestone_rewards[$streak_info['streak_count'] + 1];
+            $potential_points += $potential_milestone_bonus;
+        }
+        
+        include WC_LOYALTY_PLUGIN_DIR . 'templates/check-in-widget.php';
     }
-    
-    // Calculate today's potential points
-    $potential_points = $base_points;
-    if ($streak_info['streak_count'] > 0) {
-        $potential_points += floor($base_points * $streak_multiplier * $streak_info['streak_count']);
-    }
-    
-    // Check if today would reach a milestone
-    $potential_milestone = false;
-    $potential_milestone_bonus = 0;
-    
-    if (isset($milestone_rewards[$streak_info['streak_count'] + 1])) {
-        $potential_milestone = true;
-        $potential_milestone_bonus = $milestone_rewards[$streak_info['streak_count'] + 1];
-        $potential_points += $potential_milestone_bonus;
-    }
-    
-    include WC_LOYALTY_PLUGIN_DIR . 'templates/check-in-widget.php';
-}
 }

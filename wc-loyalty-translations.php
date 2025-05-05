@@ -161,7 +161,34 @@ function wc_loyalty_translate_strings($translated_text, $text, $domain) {
         // Plugin notices
         'WooCommerce Loyalty Gamification requires WooCommerce to be installed and activated.' => 'WooCommerce Loyalty Gamification necesită ca WooCommerce să fie instalat și activat.',
         'Product added to free products list.' => 'Produs adăugat la lista de produse gratuite.',
-        'Product removed from free products list.' => 'Produs eliminat din lista de produse gratuite.'
+        'Product removed from free products list.' => 'Produs eliminat din lista de produse gratuite.',
+'You have already checked in today. Come back tomorrow!' => 'Ai verificat deja astăzi. Revino mâine!',
+'Failed to save check-in data. Please try again.' => 'Salvarea datelor de verificare a eșuat. Te rugăm să încerci din nou.',
+'Daily check-in - Day %d streak - %d points' => 'Verificare zilnică - Ziua %d consecutivă - %d puncte',
+'Check-in successful! You earned %d points.' => 'Verificare reușită! Ai câștigat %d puncte.',
+'Congratulations! You reached a %d-day streak and earned a bonus of %d points!' => 'Felicitări! Ai atins o serie de %d zile și ai câștigat un bonus de %d puncte!',
+'Day Streak' => 'Zile Consecutive',
+'%d days until %d-day milestone!' => '%d zile până la obiectivul de %d zile!',
+'You\'ve checked in today! %d points earned.' => 'Ai verificat astăzi! %d puncte câștigate.',
+'Next check-in available: %s' => 'Următoarea verificare disponibilă: %s',
+'points available' => 'puncte disponibile',
+'Milestone bonus: +%d points!' => 'Bonus pentru obiectiv: +%d puncte!',
+'Check in now to keep your streak!' => 'Verifică acum pentru a-ți menține seria!',
+'Check In Now' => 'Verifică Acum',
+'Milestone Rewards' => 'Recompense pentru Obiective',
+'days' => 'zile',
+'bonus points' => 'puncte bonus',
+'Daily Check-in' => 'Verificare Zilnică',
+'Base Check-in Points' => 'Puncte de Bază pentru Verificare',
+'Base number of points awarded for each daily check-in' => 'Numărul de bază de puncte acordate pentru fiecare verificare zilnică',
+'Streak Multiplier' => 'Multiplicator pentru Serie',
+'Additional points multiplier per day of streak (e.g., 0.1 = +10% points per streak day)' => 'Multiplicator de puncte suplimentare pe zi de serie (de ex., 0.1 = +10% puncte per zi de serie)',
+'Define special milestone days and bonus points awarded when users reach these streak milestones' => 'Definește zilele speciale de obiectiv și punctele bonus acordate când utilizatorii ating aceste obiective',
+'Add Milestone' => 'Adaugă Obiectiv',
+'Days' => 'Zile',
+'Bonus Points' => 'Puncte Bonus',
+'Check-in System' => 'Sistem de Verificare'
+
     );
 
     // Verifică dacă textul există în lista noastră de traduceri

@@ -17,6 +17,7 @@ defined('ABSPATH') || exit;
     <a href="#general-settings" class="nav-tab"><?php esc_html_e('General Settings', 'wc-loyalty-gamification'); ?></a>
     <a href="#reward-tiers" class="nav-tab"><?php esc_html_e('Reward Tiers', 'wc-loyalty-gamification'); ?></a>
     <a href="#membership-tiers" class="nav-tab"><?php esc_html_e('Membership Tiers', 'wc-loyalty-gamification'); ?></a>
+    <a href="#checkin-settings" class="nav-tab"><?php esc_html_e('Check-in System', 'wc-loyalty-gamification'); ?></a>
 </div>
     
     <form method="post" action="options.php" id="wc-loyalty-settings-form">
@@ -133,12 +134,68 @@ defined('ABSPATH') || exit;
             
             <?php submit_button(); ?>
         </div>
+        
+        <!-- Check-in System Tab -->
+        <div id="checkin-settings" class="wc-loyalty-tab-content">
+            <table class="form-table">
+                <tr valign="top">
+                    <th scope="row"><?php esc_html_e('Base Check-in Points', 'wc-loyalty-gamification'); ?></th>
+                    <td>
+                        <input type="number" name="wc_loyalty_base_checkin_points" value="<?php echo esc_attr(get_option('wc_loyalty_base_checkin_points', 5)); ?>" min="1" step="1" />
+                        <p class="description"><?php esc_html_e('Base number of points awarded for each daily check-in', 'wc-loyalty-gamification'); ?></p>
+                    </td>
+                </tr>
+                
+                <tr valign="top">
+                    <th scope="row"><?php esc_html_e('Streak Multiplier', 'wc-loyalty-gamification'); ?></th>
+                    <td>
+                        <input type="number" name="wc_loyalty_streak_multiplier" value="<?php echo esc_attr(get_option('wc_loyalty_streak_multiplier', 0.1)); ?>" min="0" max="1" step="0.1" />
+                        <p class="description"><?php esc_html_e('Additional points multiplier per day of streak (e.g., 0.1 = +10% points per streak day)', 'wc-loyalty-gamification'); ?></p>
+                    </td>
+                </tr>
+                
+                <tr valign="top">
+                    <th scope="row"><?php esc_html_e('Milestone Rewards', 'wc-loyalty-gamification'); ?></th>
+                    <td>
+                        <div class="wc-loyalty-milestone-rewards" id="wc-loyalty-milestone-rewards">
+                            <?php
+                            $milestone_rewards = json_decode(get_option('wc_loyalty_milestone_rewards', '{}'), true);
+                            
+                            if (empty($milestone_rewards)) {
+                                $milestone_rewards = array(
+                                    '7' => 50,   // 7-day streak: 50 bonus points
+                                    '30' => 200, // 30-day streak: 200 bonus points
+                                    '90' => 500, // 90-day streak: 500 bonus points
+                                    '365' => 2000 // 365-day streak: 2000 bonus points
+                                );
+                            }
+                            
+                            foreach ($milestone_rewards as $days => $bonus) {
+                                ?>
+                                <div class="wc-loyalty-milestone-reward">
+                                    <input type="number" class="wc-loyalty-milestone-days" value="<?php echo esc_attr($days); ?>" placeholder="<?php esc_attr_e('Days', 'wc-loyalty-gamification'); ?>" min="1" step="1" />
+                                    <input type="number" class="wc-loyalty-milestone-bonus" value="<?php echo esc_attr($bonus); ?>" placeholder="<?php esc_attr_e('Bonus Points', 'wc-loyalty-gamification'); ?>" min="1" step="1" />
+                                    <button type="button" class="button wc-loyalty-remove-milestone"><?php esc_html_e('Remove', 'wc-loyalty-gamification'); ?></button>
+                                </div>
+                                <?php
+                            }
+                            ?>
+                        </div>
+                        
+                        <button type="button" id="wc-loyalty-add-milestone" class="button wc-loyalty-add-tier"><?php esc_html_e('Add Milestone', 'wc-loyalty-gamification'); ?></button>
+                        <p class="description"><?php esc_html_e('Define special milestone days and bonus points awarded when users reach these streak milestones', 'wc-loyalty-gamification'); ?></p>
+                        
+                        <input type="hidden" name="wc_loyalty_milestone_rewards" id="wc_loyalty_milestone_rewards_json" value='<?php echo esc_attr(json_encode($milestone_rewards)); ?>' />
+                    </td>
+                </tr>
+            </table>
+            
+            <?php submit_button(); ?>
+        </div>
     </form>
 </div>
 
 <!-- Template for new reward tier -->
-<script type="text/html" id="tmpl-wc-loyalty-reward-tier-template">
-    <<!-- Template for new reward tier (avoid using tmpl- prefix) -->
 <div id="wc-loyalty-reward-tier-template" style="display:none;">
     <div class="wc-loyalty-reward-tier">
         <input type="number" class="wc-loyalty-reward-tier-points" value="" placeholder="<?php esc_attr_e('Points', 'wc-loyalty-gamification'); ?>" min="1" step="1" />
@@ -153,67 +210,5 @@ defined('ABSPATH') || exit;
         <div class="wc-loyalty-reward-tier-actions">
             <button type="button" class="button wc-loyalty-remove-tier"><?php esc_html_e('Remove', 'wc-loyalty-gamification'); ?></button>
         </div>
-        
     </div>
-
-    <a href="#checkin-settings" class="nav-tab"><?php esc_html_e('Check-in System', 'wc-loyalty-gamification'); ?></a>
-
-    <!-- Check-in System Tab -->
-<div id="checkin-settings" class="wc-loyalty-tab-content">
-    <table class="form-table">
-        <tr valign="top">
-            <th scope="row"><?php esc_html_e('Base Check-in Points', 'wc-loyalty-gamification'); ?></th>
-            <td>
-                <input type="number" name="wc_loyalty_base_checkin_points" value="<?php echo esc_attr(get_option('wc_loyalty_base_checkin_points', 5)); ?>" min="1" step="1" />
-                <p class="description"><?php esc_html_e('Base number of points awarded for each daily check-in', 'wc-loyalty-gamification'); ?></p>
-            </td>
-        </tr>
-        
-        <tr valign="top">
-            <th scope="row"><?php esc_html_e('Streak Multiplier', 'wc-loyalty-gamification'); ?></th>
-            <td>
-                <input type="number" name="wc_loyalty_streak_multiplier" value="<?php echo esc_attr(get_option('wc_loyalty_streak_multiplier', 0.1)); ?>" min="0" max="1" step="0.1" />
-                <p class="description"><?php esc_html_e('Additional points multiplier per day of streak (e.g., 0.1 = +10% points per streak day)', 'wc-loyalty-gamification'); ?></p>
-            </td>
-        </tr>
-        
-        <tr valign="top">
-            <th scope="row"><?php esc_html_e('Milestone Rewards', 'wc-loyalty-gamification'); ?></th>
-            <td>
-                <div class="wc-loyalty-milestone-rewards" id="wc-loyalty-milestone-rewards">
-                    <?php
-                    $milestone_rewards = json_decode(get_option('wc_loyalty_milestone_rewards', '{}'), true);
-                    
-                    if (empty($milestone_rewards)) {
-                        $milestone_rewards = array(
-                            '7' => 50,   // 7-day streak: 50 bonus points
-                            '30' => 200, // 30-day streak: 200 bonus points
-                            '90' => 500, // 90-day streak: 500 bonus points
-                            '365' => 2000 // 365-day streak: 2000 bonus points
-                        );
-                    }
-                    
-                    foreach ($milestone_rewards as $days => $bonus) {
-                        ?>
-                        <div class="wc-loyalty-milestone-reward">
-                            <input type="number" class="wc-loyalty-milestone-days" value="<?php echo esc_attr($days); ?>" placeholder="<?php esc_attr_e('Days', 'wc-loyalty-gamification'); ?>" min="1" step="1" />
-                            <input type="number" class="wc-loyalty-milestone-bonus" value="<?php echo esc_attr($bonus); ?>" placeholder="<?php esc_attr_e('Bonus Points', 'wc-loyalty-gamification'); ?>" min="1" step="1" />
-                            <button type="button" class="button wc-loyalty-remove-milestone"><?php esc_html_e('Remove', 'wc-loyalty-gamification'); ?></button>
-                        </div>
-                        <?php
-                    }
-                    ?>
-                </div>
-                
-                <button type="button" id="wc-loyalty-add-milestone" class="button wc-loyalty-add-tier"><?php esc_html_e('Add Milestone', 'wc-loyalty-gamification'); ?></button>
-                <p class="description"><?php esc_html_e('Define special milestone days and bonus points awarded when users reach these streak milestones', 'wc-loyalty-gamification'); ?></p>
-                
-                <input type="hidden" name="wc_loyalty_milestone_rewards" id="wc_loyalty_milestone_rewards_json" value='<?php echo esc_attr(json_encode($milestone_rewards)); ?>' />
-            </td>
-        </tr>
-    </table>
-    
-    <?php submit_button(); ?>
 </div>
-</div>
-</script>
