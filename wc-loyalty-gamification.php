@@ -369,6 +369,9 @@ class WC_Loyalty_Gamification {
         $this->account = new WC_Loyalty_Account();
         $this->ajax = new WC_Loyalty_Ajax();
         $this->cart = new WC_Loyalty_Cart();
+        // Initialize check-in system
+require_once WC_LOYALTY_PLUGIN_DIR . 'includes/class-wc-loyalty-checkin.php';
+$this->checkin = new WC_Loyalty_Checkin();
     }
 }
 
@@ -490,3 +493,5 @@ function wc_loyalty_mark_coupon_used_on_complete($order_id) {
         }
     }
 }
+// Încarcă traducerile pentru română
+include_once(WC_LOYALTY_PLUGIN_DIR . 'wc-loyalty-translations.php');

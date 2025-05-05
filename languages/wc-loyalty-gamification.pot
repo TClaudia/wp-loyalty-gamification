@@ -1,0 +1,81 @@
+<?php
+// Acest fișier va deveni wc-loyalty-gamification-ro_RO.po
+return array(
+    // Texte generale
+    'Loyalty Program' => 'Program de Fidelitate',
+    'Your Loyalty Points' => 'Punctele Tale de Fidelitate',
+    'See Your Points' => 'Vezi Punctele Tale',
+    'points' => 'puncte',
+    'Current Points' => 'Puncte Curente',
+    'You need %s more points to reach your next reward!' => 'Mai ai nevoie de %s puncte pentru următoarea recompensă!',
+    'Congratulations! You\'ve reached 2000 points! Check your coupons for a 60% discount code.' => 'Felicitări! Ai acumulat 2000 de puncte! Verifică-ți cupoanele pentru un cod de reducere de 60%.',
+    'You need %s more points to reach 2000 and earn a premium 60%% discount!' => 'Mai ai nevoie de %s puncte pentru a ajunge la 2000 și a primi o reducere premium de 60%%!',
+
+    // Cupoane
+    'Your Coupons' => 'Cupoanele Tale',
+    '%d%% OFF' => '%d%% REDUCERE',
+    'Premium Reward' => 'Recompensă Premium',
+    'Copy' => 'Copiază',
+    'Valid for orders up to 400 lei' => 'Valid pentru comenzi de până la 400 lei',
+    'Expired' => 'Expirat',
+    'Used' => 'Utilizat',
+    'Valid until %s' => 'Valid până la %s',
+
+    // Notificări
+    'Notifications' => 'Notificări',
+
+    // Recompense
+    'Rewards' => 'Recompense',
+    '%d%% Discount (up to 400 lei)' => '%d%% Reducere (până la 400 lei)',
+    '%d%% Discount' => '%d%% Reducere',
+    'Free Shipping' => 'Transport Gratuit',
+    'Claimed' => 'Revendicat',
+    'View Coupon' => 'Vezi Cupon',
+    'No rewards available yet.' => 'Nu există recompense disponibile încă.',
+
+    // Istoric
+    'View Points History' => 'Vezi Istoricul Punctelor',
+    'Points History' => 'Istoricul Punctelor',
+    'No points history yet.' => 'Nu există încă istoric de puncte.',
+    'Date' => 'Data',
+    'Points' => 'Puncte',
+    'Description' => 'Descriere',
+    'Claimed Rewards' => 'Recompense Revendicate',
+    'No rewards claimed yet.' => 'Nu există încă recompense revendicate.',
+    'Points Level' => 'Nivel de Puncte',
+    'Reward' => 'Recompensă',
+
+    // Pagina de setări admin
+    'Loyalty Program Settings' => 'Setări Program de Fidelitate',
+    'General Settings' => 'Setări Generale',
+    'Reward Tiers' => 'Niveluri de Recompensă',
+    'Membership Tiers' => 'Niveluri de Membru',
+    'Points per Euro' => 'Puncte per Euro',
+    'Number of points awarded per euro spent on orders' => 'Numărul de puncte acordate pentru fiecare euro cheltuit pe comenzi',
+    'Points for Product Review' => 'Puncte pentru Recenzie Produs',
+    'Number of points awarded for product reviews (customer must have purchased the product)' => 'Numărul de puncte acordate pentru recenzii de produse (clientul trebuie să fi cumpărat produsul)',
+    'Premium Discount Max Order Value' => 'Valoarea Maximă a Comenzii pentru Reducerea Premium',
+    'Maximum order value (in lei) for the premium 60% discount awarded at 2000 points' => 'Valoarea maximă a comenzii (în lei) pentru reducerea premium de 60% acordată la 2000 de puncte',
+
+    // Mesaje coș/checkout
+    'Your Loyalty Coupons' => 'Cupoanele Tale de Fidelitate',
+    'Applied' => 'Aplicat',
+    'Apply' => 'Aplică',
+    'Applied from Loyalty Program' => 'Aplicat din Programul de Fidelitate',
+    'Free shipping applied from your loyalty program rewards!' => 'Transport gratuit aplicat din recompensele programului de fidelitat'wp' is not recognized as an internal or external command,
+operable program or batch file.
+
+    // Mesaje thank you
+    'You\'ll earn %d loyalty points when this order is completed. <a href="%s">View your points</a>' => 'Vei câștiga %d puncte de fidelitate când această comandă va fi finalizată. <a href="%s">Vezi punctele tale</a>',
+
+    // Mesaje email
+    'Congratulations!' => 'Felicitări!',
+    'You\'ve earned a %d%% discount through our loyalty program!' => 'Ai câștigat o reducere de %d%% prin programul nostru de fidelitate!',
+    'As a valued customer, we\'re excited to reward you with this special discount on your next purchase.' => 'În calitate de client valoros, suntem încântați să te răsplătim cu această reducere specială la următoarea ta achiziție.',
+    'Your Coupon Code:' => 'Codul tău de Cupon:',
+    'Valid until: %s' => 'Valid până la: %s',
+    'Simply enter this code at checkout to claim your discount.' => 'Introdu simplu acest cod la finalizarea comenzii pentru a beneficia de reducere.',
+    'Shop Now' => 'Cumpără Acum',
+    'Thank you for being a loyal customer!' => 'Îți mulțumim că ești un client fidel!',
+    'My Account' => 'Contul Meu',
+);

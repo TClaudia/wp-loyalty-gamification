@@ -18,8 +18,8 @@ $claimed_rewards = WC_Loyalty()->rewards->get_rewards_claimed($user_id);
 $next_tier = WC_Loyalty()->rewards->get_next_reward_tier($display_points, $reward_tiers);
 ?>
 
-<!-- Loyalty Button -->
-<div class="wc-loyalty-button">
+<!-- Loyalty Button - Now Floating Higher -->
+<div class="wc-loyalty-button floating">
     <button id="wc-loyalty-toggle-btn"><?php esc_html_e('See Your Points', 'wc-loyalty-gamification'); ?></button>
 </div>
 
@@ -77,55 +77,32 @@ $next_tier = WC_Loyalty()->rewards->get_next_reward_tier($display_points, $rewar
             <?php endif; ?>
         </div>
         
+        <?php do_action('wc_loyalty_modal_after_points'); ?>
+
         <?php if (!empty($user_coupons)) : ?>
             <div class="wc-loyalty-coupons-list">
                 <h3><?php esc_html_e('Your Coupons', 'wc-loyalty-gamification'); ?></h3>
                 
-                <?php foreach ($user_coupons as $index => $coupon) : 
-                    $coupon_expired = strtotime($coupon['expires']) < time();
-                    $coupon_class = $coupon['is_used'] ? 'used' : ($coupon_expired ? 'expired' : 'active');
-                    $is_premium = isset($coupon['tier']) && $coupon['tier'] === 2000;
-                ?>
-                    <div class="wc-loyalty-coupon <?php echo esc_attr($coupon_class); ?> <?php echo $is_premium ? 'premium-coupon' : ''; ?>">
-                        <div class="wc-loyalty-coupon-discount">
-                            <?php printf(esc_html__('%d%% OFF', 'wc-loyalty-gamification'), $coupon['discount']); ?>
-                            <?php if ($is_premium) : ?>
-                                <span class="premium-label"><?php esc_html_e('Premium Reward', 'wc-loyalty-gamification'); ?></span>
-                            <?php endif; ?>
-                        </div>
-                        <div class="wc-loyalty-coupon-code">
-                            <?php echo esc_html($coupon['code']); ?>
-                            <button class="wc-loyalty-copy-code" data-code="<?php echo esc_attr($coupon['code']); ?>"><?php esc_html_e('Copy', 'wc-loyalty-gamification'); ?></button>
-                        </div>
-                        <?php if ($is_premium) : ?>
-                            <div class="wc-loyalty-coupon-info">
-                                <?php esc_html_e('Valid for orders up to 400 lei', 'wc-loyalty-gamification'); ?>
+                <div class="mini-coupons-container">
+                    <?php foreach ($user_coupons as $index => $coupon) : 
+                        $coupon_expired = strtotime($coupon['expires']) < time();
+                        $is_usable = !$coupon['is_used'] && !$coupon_expired;
+                        
+                        // Skip expired or used coupons
+                        if (!$is_usable) continue;
+                        
+                        $is_premium = isset($coupon['tier']) && $coupon['tier'] === 2000;
+                    ?>
+                        <div class="mini-coupon <?php echo $is_premium ? 'premium' : ''; ?>">
+                            <div class="mini-coupon-info">
+                                <?php printf(esc_html__('%d%%', 'wc-loyalty-gamification'), $coupon['discount']); ?>
                             </div>
-                        <?php endif; ?>
-                        <div class="wc-loyalty-coupon-expiry">
-                            <?php if ($coupon_expired) : ?>
-                                <?php esc_html_e('Expired', 'wc-loyalty-gamification'); ?>
-                            <?php elseif ($coupon['is_used']) : ?>
-                                <?php esc_html_e('Used', 'wc-loyalty-gamification'); ?>
-                            <?php else : ?>
-                                <?php printf(esc_html__('Valid until %s', 'wc-loyalty-gamification'), date_i18n(get_option('date_format'), strtotime($coupon['expires']))); ?>
-                            <?php endif; ?>
+                            <button class="mini-copy-btn" data-code="<?php echo esc_attr($coupon['code']); ?>">
+                                <?php esc_html_e('Copy', 'wc-loyalty-gamification'); ?>
+                            </button>
                         </div>
-                    </div>
-                <?php endforeach; ?>
-            </div>
-        <?php endif; ?>
-        
-        
-        <?php if (!empty($user_notifications)) : ?>
-            <div class="wc-loyalty-notifications">
-                <h3><?php esc_html_e('Notifications', 'wc-loyalty-gamification'); ?></h3>
-                
-                <?php foreach ($user_notifications as $index => $notification) : ?>
-                    <div class="wc-loyalty-notification <?php echo esc_attr($notification['type']); ?>">
-                        <?php echo esc_html($notification['message']); ?>
-                    </div>
-                <?php endforeach; ?>
+                    <?php endforeach; ?>
+                </div>
             </div>
         <?php endif; ?>
         

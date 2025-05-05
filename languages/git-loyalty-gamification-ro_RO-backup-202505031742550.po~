@@ -1,0 +1,31 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: WooCommerce Loyalty Gamification\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-05-03 17:41+0000\n"
+"PO-Revision-Date: 2025-05-03 17:42+0000\n"
+"Last-Translator: \n"
+"Language-Team: Romanian\n"
+"Language: ro_RO\n"
+"Plural-Forms: nplurals=3; plural=(n==1 ? 0 :(((n%100>19)||(( n%100==0)&&(n!"
+"=0)))? 2 : 1));\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Loco https://localise.biz/\n"
+"X-Loco-Version: 2.7.2; wp-6.8.1\n"
+"X-Domain: git-loyalty-gamification"
+
+#. Description of the plugin
+msgid ""
+"A loyalty gamification system for WooCommerce with points, progress bar, and "
+"rewards."
+msgstr ""
+
+#. Author of the plugin
+msgid "Claudia Tun"
+msgstr ""
+
+#. Name of the plugin
+msgid "WooCommerce Loyalty Gamification"
+msgstr ""

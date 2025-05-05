@@ -12,6 +12,7 @@
             this.initCircleProgress();
             this.initCoupons();
             this.initNotifications();
+            this.initCheckin();
         },
 
         // Initialize modal functionality
@@ -144,7 +145,36 @@
         
         // Bind copy buttons directly
         bindCopyButtons: function() {
+            // Handle standard coupon buttons
             $('.wc-loyalty-copy-code').each(function() {
+                var $button = $(this);
+
+                $button.off('click').on('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    var couponCode = $button.data('code');
+                    var originalText = $button.text();
+
+                    // Simple copy method that works in most browsers
+                    WCLoyalty.simpleCopyToClipboard(couponCode);
+
+                    // Update button text
+                    $button.text('Copied!');
+
+                    // Show notification
+                    WCLoyalty.showNotification('Coupon code copied to clipboard!', 'success');
+
+                    // Reset button text after a delay
+                    setTimeout(function() {
+                        $button.text(originalText);
+                    }, 2000);
+                });
+            });
+
+            // Handle minimalist coupon buttons
+            var miniCopyButtons = $('.mini-copy-btn');
+            miniCopyButtons.each(function() {
                 var $button = $(this);
                 
                 $button.off('click').on('click', function(e) {
@@ -154,19 +184,25 @@
                     var couponCode = $button.data('code');
                     var originalText = $button.text();
                     
-                    // Simple copy method that works in most browsers
+                    // Copy to clipboard
                     WCLoyalty.simpleCopyToClipboard(couponCode);
                     
-                    // Update button text
+                    // Visual feedback
                     $button.text('Copied!');
+                    $button.addClass('copied');
+                    
+                    // Add animation to the parent coupon
+                    $button.parent().addClass('copy-animation');
+                    
+                    // Reset after delay
+                    setTimeout(function() {
+                        $button.text(originalText);
+                        $button.removeClass('copied');
+                        $button.parent().removeClass('copy-animation');
+                    }, 1500);
                     
                     // Show notification
                     WCLoyalty.showNotification('Coupon code copied to clipboard!', 'success');
-                    
-                    // Reset button text after a delay
-                    setTimeout(function() {
-                        $button.text(originalText);
-                    }, 2000);
                 });
             });
         },
@@ -220,6 +256,54 @@
                     notification.remove();
                 }, 300);
             }, 4000);
+        },
+        
+        // Initialize check-in functionality
+        initCheckin: function() {
+            var self = this;
+            var checkinBtn = $('#wc-loyalty-checkin-btn');
+            
+            if (checkinBtn.length) {
+                checkinBtn.on('click', function(e) {
+                    e.preventDefault();
+                    
+                    // Change button state
+                    $(this).prop('disabled', true);
+                    $(this).text('Checking in...');
+                    
+                    // Make AJAX request
+                    $.ajax({
+                        type: 'POST',
+                        url: wcLoyaltyData.ajaxurl,
+                        data: {
+                            action: 'wc_loyalty_daily_checkin',
+                            nonce: wcLoyaltyData.nonce
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                // Show success notification
+                                self.showNotification(response.data.message, 'success');
+                                
+                                // Update the display - reload the modal content for simplicity
+                                setTimeout(function() {
+                                    location.reload();
+                                }, 1500);
+                            } else {
+                                // Show error message
+                                self.showNotification(response.data.message || 'Failed to check in. Please try again.', 'error');
+                                checkinBtn.prop('disabled', false);
+                                checkinBtn.text('Check In Now');
+                            }
+                        },
+                        error: function() {
+                            // Show error message
+                            self.showNotification('An error occurred. Please try again.', 'error');
+                            checkinBtn.prop('disabled', false);
+                            checkinBtn.text('Check In Now');
+                        }
+                    });
+                });
+            }
         }
     };
 
