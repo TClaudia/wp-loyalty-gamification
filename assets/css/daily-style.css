@@ -1,0 +1,273 @@
+   /**
+   * Daily Check-in Compact Styles
+   * Add to your loyalty-style.css file
+   */
+
+   /* Daily Check-in Button near progress circle */
+   .wc-loyalty-daily-claim {
+    position: absolute;
+    bottom: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: var(--loyalty-secondary);
+    color: var(--loyalty-white);
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+    transition: var(--loyalty-transition);
+    white-space: nowrap;
+   }
+
+   .wc-loyalty-daily-claim:hover {
+    background-color: var(--loyalty-secondary-dark);
+    transform: translateX(-50%) translateY(-2px);
+   }
+
+   .wc-loyalty-daily-claim.disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+   }
+
+   /* Daily streak indicator (small badge) */
+   .wc-loyalty-streak-badge {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    background-color: var(--loyalty-primary);
+    color: var(--loyalty-white);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 6px;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+   }
+
+   /* Daily Check-in Modal */
+   .wc-loyalty-daily-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 99999;
+    align-items: center;
+    justify-content: center;
+   }
+
+   .wc-loyalty-daily-modal-content {
+    background-color: var(--loyalty-white);
+    padding: 25px;
+    border-radius: var(--loyalty-border-radius);
+    max-width: 350px;
+    position: relative;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    text-align: center;
+   }
+
+   .wc-loyalty-daily-close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 18px;
+    color: #999;
+    cursor: pointer;
+   }
+
+   .wc-loyalty-daily-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--loyalty-primary);
+    margin-bottom: 15px;
+   }
+
+   .wc-loyalty-daily-message {
+    margin-bottom: 20px;
+    font-size: 14px;
+    color: #666;
+   }
+
+   .wc-loyalty-streak-count {
+    display: inline-block;
+    margin: 10px 0 20px;
+    background-color: #f8f9fa;
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--loyalty-primary);
+   }
+
+   .wc-loyalty-streak-days {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+   }
+
+   .wc-loyalty-streak-day {
+    width: 20px;
+    height: 20px;
+    margin: 0 5px;
+    border-radius: 50%;
+    background-color: #eee;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: #999;
+    position: relative;
+   }
+
+   .wc-loyalty-streak-day.active {
+    background-color: var(--loyalty-primary);
+    color: var(--loyalty-white);
+   }
+
+   .wc-loyalty-streak-day.today {
+    border: 2px solid var(--loyalty-secondary);
+   }
+
+   .wc-loyalty-streak-day:after {
+    content: "";
+    position: absolute;
+    top: 9px;
+    left: 25px;
+    width: 10px;
+    height: 2px;
+    background-color: #eee;
+   }
+
+   .wc-loyalty-streak-day:last-child:after {
+    display: none;
+   }
+
+   .wc-loyalty-daily-button {
+    background-color: var(--loyalty-primary);
+    color: var(--loyalty-white);
+    border: none;
+    padding: 8px 20px;
+    border-radius: var(--loyalty-border-radius);
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--loyalty-transition);
+   }
+
+   .wc-loyalty-daily-button:hover {
+    background-color: var(--loyalty-primary-dark);
+   }
+
+   .wc-loyalty-daily-button.claimed {
+    background-color: var(--loyalty-success);
+   }
+
+   .wc-loyalty-daily-button.disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+   }
+
+   /* Account page daily streak display */
+   .wc-loyalty-account-streak {
+    margin: 20px 0;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: var(--loyalty-border-radius);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+   }
+
+   .wc-loyalty-account-streak-info {
+    display: flex;
+    align-items: center;
+   }
+
+   .wc-loyalty-account-streak-count {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--loyalty-primary);
+    margin-right: 10px;
+   }
+
+   .wc-loyalty-account-streak-label {
+    color: #666;
+    font-size: 14px;
+   }
+
+   .wc-loyalty-account-streak-button {
+    background-color: var(--loyalty-secondary);
+    color: var(--loyalty-white);
+    border: none;
+    padding: 8px 15px;
+    border-radius: var(--loyalty-border-radius);
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--loyalty-transition);
+   }
+
+   .wc-loyalty-account-streak-button:hover {
+    background-color: var(--loyalty-secondary-dark);
+   }
+
+   .wc-loyalty-account-streak-button.claimed {
+    background-color: var(--loyalty-success);
+   }
+
+   /* Tooltip for points info */
+   .wc-loyalty-tooltip {
+    position: relative;
+    display: inline-block;
+    cursor: help;
+   }
+
+   .wc-loyalty-tooltip .tooltip-text {
+    visibility: hidden;
+    width: 200px;
+    background-color: var(--loyalty-dark);
+    color: var(--loyalty-white);
+    text-align: center;
+    border-radius: 6px;
+    padding: 8px;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-size: 12px;
+    pointer-events: none;
+   }
+
+   .wc-loyalty-tooltip .tooltip-text::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: var(--loyalty-dark) transparent transparent transparent;
+   }
+
+   .wc-loyalty-tooltip:hover .tooltip-text {
+    visibility: visible;
+    opacity: 1;
+   }
+
+   /* Responsive adjustments */
+   @media screen and (max-width: 480px) {
+    .wc-loyalty-account-streak {
+     flex-direction: column;
+     text-align: center;
+    }
+
+    .wc-loyalty-account-streak-info {
+     margin-bottom: 10px;
+     justify-content: center;
+    }
+   }

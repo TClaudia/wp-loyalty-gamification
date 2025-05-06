@@ -156,6 +156,14 @@ Options -Indexes";
             '1.2.2', 
             true
         );
+
+            wp_enqueue_script(
+        'wc-loyalty-daily',
+        WC_LOYALTY_PLUGIN_URL . 'assets/js/daily-checkin.js',
+        array('jquery', 'wc-circle-progress', 'wc-loyalty-script'),
+        WC_LOYALTY_VERSION,
+        true
+    );
     }
 }
 
@@ -217,7 +225,8 @@ function wc_loyalty_init_plugin() {
         'includes/class-wc-loyalty-admin.php',
         'includes/class-wc-loyalty-account.php',
         'includes/class-wc-loyalty-ajax.php',
-        'includes/class-wc-loyalty-cart.php'
+        'includes/class-wc-loyalty-cart.php',
+        'includes/class-wc-loyalty-daily.php'
     );
 
     foreach ($include_files as $file) {
@@ -286,6 +295,13 @@ class WC_Loyalty_Gamification {
      * @var WC_Loyalty_Cart
      */
     public $cart;
+
+    /**
+ * Daily check-in instance.
+ *
+ * @var WC_Loyalty_Daily
+ */
+public $daily;
 
     /**
      * The single instance of the class.
@@ -369,6 +385,7 @@ class WC_Loyalty_Gamification {
         $this->account = new WC_Loyalty_Account();
         $this->ajax = new WC_Loyalty_Ajax();
         $this->cart = new WC_Loyalty_Cart();
+        $this->daily = new WC_Loyalty_Daily();
         // Initialize check-in system
 require_once WC_LOYALTY_PLUGIN_DIR . 'includes/class-wc-loyalty-checkin.php';
 $this->checkin = new WC_Loyalty_Checkin();
@@ -492,6 +509,9 @@ function wc_loyalty_mark_coupon_used_on_complete($order_id) {
             }
         }
     }
+
+
+    
 }
 // Încarcă traducerile pentru română
 include_once(WC_LOYALTY_PLUGIN_DIR . 'wc-loyalty-translations.php');

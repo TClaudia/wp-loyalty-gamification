@@ -77,6 +77,11 @@ $next_tier = WC_Loyalty()->rewards->get_next_reward_tier($display_points, $rewar
             <?php endif; ?>
         </div>
         
+        <?php
+// Add action hook for additional content after points display
+do_action('wc_loyalty_after_points_display');
+?>
+        
         <?php do_action('wc_loyalty_modal_after_points'); ?>
 
         <?php if (!empty($user_coupons)) : ?>

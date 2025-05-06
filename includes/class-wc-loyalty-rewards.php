@@ -120,7 +120,6 @@ class WC_Loyalty_Rewards {
      * @param int $points Current points
      */
     public function check_reward_eligibility($user_id, $points) {
-<<<<<<< HEAD
         $reward_tiers = unserialize(get_option('wc_loyalty_reward_tiers', 'a:0:{}'));
         
         // Safety check - ensure reward_tiers is an array
@@ -146,45 +145,6 @@ class WC_Loyalty_Rewards {
                 
                 // Log this to help with debugging
                 error_log("Reward tier $tier claimed by user $user_id");
-=======
-        $reward_tiers = unserialize(get_option('wc_loyalty_reward_tiers'));
-        $claimed_rewards = $this->get_rewards_claimed($user_id);
-        $display_points = WC_Loyalty()->points->get_user_display_points($user_id);
-        
-        foreach ($reward_tiers as $tier => $reward) {
-            // Process rewards automatically (except for 2000 points tier which is handled separately)
-            if (($tier <= $points || $tier <= $display_points) && $tier !== 2000) {
-                // If this reward hasn't been claimed yet
-                if (!isset($claimed_rewards[$tier])) {
-                    $this->process_reward($user_id, $tier, $reward);
-                    
-                    // Mark reward as claimed
-                    $claimed_rewards[$tier] = current_time('mysql');
-                    $this->update_rewards_claimed($user_id, $claimed_rewards);
-                }
-            }
-        }
-    }
-    
-    /**
-     * Handle when a coupon is applied.
-     * 
-     * @param string $coupon_code The coupon code
-     */
-    public function handle_applied_coupon($coupon_code) {
-        if (!is_user_logged_in()) {
-            return;
-        }
-        
-        $user_id = get_current_user_id();
-        $user_coupons = $this->get_user_coupons($user_id);
-        
-        // Check if this is one of our loyalty coupons
-        foreach ($user_coupons as $coupon) {
-            if ($coupon['code'] === $coupon_code) {
-                $this->mark_coupon_as_used($coupon_code, $user_id);
-                break;
->>>>>>> 815d2df76d4f986c861a1c2a5831e3bb6472e936
             }
         }
     }
@@ -199,19 +159,15 @@ class WC_Loyalty_Rewards {
     private function process_reward($user_id, $tier, $reward) {
         $user = get_user_by('id', $user_id);
         
-<<<<<<< HEAD
         if (!$user) {
             error_log("Cannot process reward: User ID $user_id not found");
             return;
         }
         
-=======
->>>>>>> 815d2df76d4f986c861a1c2a5831e3bb6472e936
         // Check if user already has an active coupon for this tier
         $user_coupons = $this->get_user_coupons($user_id);
         $tier_already_processed = false;
         
-<<<<<<< HEAD
         if (is_array($user_coupons)) {
             foreach ($user_coupons as $coupon) {
                 if (isset($coupon['tier']) && $coupon['tier'] == $tier) {
@@ -240,25 +196,6 @@ class WC_Loyalty_Rewards {
                         // Store the coupon code with tier information
                         $this->store_user_coupon($user_id, $coupon_code, $discount_value, '+30 days', $tier);
                     }
-=======
-        foreach ($user_coupons as $coupon) {
-            if (isset($coupon['tier']) && $coupon['tier'] == $tier) {
-                $tier_already_processed = true;
-                break;
-            }
-        }
-        
-        // Only process if tier hasn't been processed yet
-        if (!$tier_already_processed) {
-            switch ($reward['type']) {
-                case 'discount':
-                    // Generate coupon code
-                    $max_order = isset($reward['max_order']) ? $reward['max_order'] : 0;
-                    $coupon_code = $this->generate_discount_coupon($user_id, $reward['value'], $max_order);
-                    
-                    // Store coupon code with tier info
-                    $this->store_user_coupon($user_id, $coupon_code, $reward['value'], '+30 days', $tier, 'discount');
->>>>>>> 815d2df76d4f986c861a1c2a5831e3bb6472e936
                     break;
                     
                 case 'free_shipping':
@@ -266,7 +203,6 @@ class WC_Loyalty_Rewards {
                     update_user_meta($user_id, '_wc_loyalty_free_shipping', 'yes');
                     
                     // Store notification
-<<<<<<< HEAD
                     $this->store_user_notification(
                         $user_id, 
                         'free_shipping', 
@@ -285,14 +221,10 @@ class WC_Loyalty_Rewards {
                     
                 default:
                     error_log("Unknown reward type: {$reward['type']} for tier $tier");
-=======
-                    $this->store_user_notification($user_id, 'free_shipping', __('You\'ve earned free shipping on your next order!', 'wc-loyalty-gamification'));
->>>>>>> 815d2df76d4f986c861a1c2a5831e3bb6472e936
                     break;
             }
         }
     }
-<<<<<<< HEAD
 
     /**
      * Store user coupon for frontend display
@@ -304,68 +236,10 @@ class WC_Loyalty_Rewards {
      * @param int|null $tier Tier level
      */
     private function store_user_coupon($user_id, $coupon_code, $discount_value, $expiry = '+30 days', $tier = null) {
-=======
-    
-    /**
-     * Store user coupon for frontend display
-     */
-    private function store_user_coupon($user_id, $coupon_code, $discount_value, $expiry = '+30 days', $tier = null, $coupon_type = 'discount') {
->>>>>>> 815d2df76d4f986c861a1c2a5831e3bb6472e936
         $user_coupons = get_user_meta($user_id, '_wc_loyalty_coupons', true);
         
         if (!is_array($user_coupons)) {
             $user_coupons = array();
-<<<<<<< HEAD
-=======
-        }
-        
-        // Add new coupon
-        $user_coupons[] = array(
-            'code' => $coupon_code,
-            'discount' => $discount_value,
-            'created' => current_time('mysql'),
-            'expires' => date('Y-m-d H:i:s', strtotime($expiry)),
-            'is_used' => false,
-            'tier' => $tier,
-            'type' => $coupon_type
-        );
-        
-        // Save updated coupons
-        update_user_meta($user_id, '_wc_loyalty_coupons', $user_coupons);
-    }
-
-    /**
-     * Store user notification for frontend display
-     */
-    private function store_user_notification($user_id, $type, $message) {
-        $notifications = get_user_meta($user_id, '_wc_loyalty_notifications', true);
-        
-        if (!is_array($notifications)) {
-            $notifications = array();
-        }
-        
-        // Check if a similar notification already exists
-        $exists = false;
-        foreach ($notifications as $notification) {
-            if ($notification['type'] == $type && $notification['message'] == $message) {
-                $exists = true;
-                break;
-            }
-        }
-        
-        // Only add if it doesn't exist
-        if (!$exists) {
-            // Add the new notification
-            $notifications[] = array(
-                'type' => $type,
-                'message' => $message,
-                'created' => current_time('mysql'),
-                'is_read' => false
-            );
-            
-            // Save the updated notifications
-            update_user_meta($user_id, '_wc_loyalty_notifications', $notifications);
->>>>>>> 815d2df76d4f986c861a1c2a5831e3bb6472e936
         }
         
         // Add the new coupon
@@ -383,7 +257,6 @@ class WC_Loyalty_Rewards {
     }
 
     /**
-<<<<<<< HEAD
      * Store user notification for frontend display
      * 
      * @param int $user_id User ID
@@ -430,40 +303,13 @@ class WC_Loyalty_Rewards {
         $notifications = get_user_meta($user_id, '_wc_loyalty_notifications', true);
         return is_array($notifications) ? $notifications : array();
     }
-=======
-     * Get user coupons.
-     *
-     * @param int $user_id User ID
-     * @return array Active coupons
-     */
-    public function get_user_coupons($user_id) {
-        $coupons = get_user_meta($user_id, '_wc_loyalty_coupons', true);
-        return is_array($coupons) ? $coupons : array();
-    }
-
-    /**
-     * Get user notifications.
-     *
-     * @param int $user_id User ID
-     * @return array Notifications
-     */
-    public function get_user_notifications($user_id) {
-        $notifications = get_user_meta($user_id, '_wc_loyalty_notifications', true);
-        return is_array($notifications) ? $notifications : array();
-    }
->>>>>>> 815d2df76d4f986c861a1c2a5831e3bb6472e936
     
     /**
      * Generate discount coupon.
      *
      * @param int $user_id User ID
      * @param int $discount_value Discount percentage
-<<<<<<< HEAD
      * @return string|false Coupon code or false on failure
-=======
-     * @param int $max_order Maximum order value for the discount
-     * @return string Coupon code
->>>>>>> 815d2df76d4f986c861a1c2a5831e3bb6472e936
      */
     private function generate_discount_coupon($user_id, $discount_value, $max_order = 0) {
         $user = get_user_by('id', $user_id);
@@ -496,17 +342,7 @@ class WC_Loyalty_Rewards {
             update_post_meta($coupon_id, 'free_shipping', 'no');
             update_post_meta($coupon_id, 'customer_email', array($user->user_email));
             
-<<<<<<< HEAD
             return $coupon_code;
-=======
-            // Mark as loyalty coupon
-            update_post_meta($coupon_id, '_wc_loyalty_coupon', 'yes');
-            
-            // Set maximum order value if provided
-            if ($max_order > 0) {
-                update_post_meta($coupon_id, 'maximum_amount', $max_order);
-            }
->>>>>>> 815d2df76d4f986c861a1c2a5831e3bb6472e936
         }
         
         error_log("Failed to create WooCommerce coupon for user ID $user_id");
@@ -522,16 +358,6 @@ class WC_Loyalty_Rewards {
      * @return bool Success or failure
      */
     public function send_reward_email($email, $reward_type, $data = array()) {
-<<<<<<< HEAD
-        if (empty($email) || !is_email($email)) {
-            error_log('Invalid email address for reward email');
-            return false;
-        }
-        
-        error_log('Attempting to send reward email to: ' . $email . ' of type: ' . $reward_type);
-        
-=======
->>>>>>> 815d2df76d4f986c861a1c2a5831e3bb6472e936
         $subject = '';
         $message = '';
         $headers = array('Content-Type: text/html; charset=UTF-8');
@@ -540,10 +366,6 @@ class WC_Loyalty_Rewards {
         $template_path = WC_LOYALTY_PLUGIN_DIR . 'templates/emails/reward-' . $reward_type . '.php';
         
         if (!file_exists($template_path)) {
-<<<<<<< HEAD
-            error_log('Email template not found: ' . $template_path);
-=======
->>>>>>> 815d2df76d4f986c861a1c2a5831e3bb6472e936
             return false;
         }
         
@@ -557,40 +379,15 @@ class WC_Loyalty_Rewards {
         // Set subject based on reward type
         switch ($reward_type) {
             case 'discount':
-<<<<<<< HEAD
-                $discount = isset($data['discount']) ? intval($data['discount']) : 0;
-                $subject = sprintf(
-                    __('You\'ve earned a %d%% discount!', 'wc-loyalty-gamification'), 
-                    $discount
-                );
-=======
                 $subject = sprintf(__('You\'ve earned a %d%% discount!', 'wc-loyalty-gamification'), $data['discount']);
->>>>>>> 815d2df76d4f986c861a1c2a5831e3bb6472e936
                 break;
                 
             case 'free_shipping':
                 $subject = __('You\'ve earned free shipping!', 'wc-loyalty-gamification');
                 break;
-<<<<<<< HEAD
-                
-            case 'free_product':
-                $subject = __('You\'ve earned a free product!', 'wc-loyalty-gamification');
-                break;
-                
-            default:
-                $subject = __('You\'ve earned a reward!', 'wc-loyalty-gamification');
-                break;
-        }
-        
-        $result = wp_mail($email, $subject, $message, $headers);
-        error_log('Email send result: ' . ($result ? 'Success' : 'Failed'));
-        
-        return $result;
-=======
         }
         
         return wp_mail($email, $subject, $message, $headers);
->>>>>>> 815d2df76d4f986c861a1c2a5831e3bb6472e936
     }
     
     /**
@@ -771,17 +568,6 @@ class WC_Loyalty_Rewards {
         }
         
         $user_id = get_current_user_id();
-<<<<<<< HEAD
-        $points = WC_Loyalty()->points->get_user_points($user_id);
-        $reward_tiers = unserialize(get_option('wc_loyalty_reward_tiers', 'a:0:{}'));
-        
-        // Safety check - ensure reward_tiers is an array
-        if (!is_array($reward_tiers)) {
-            $reward_tiers = array();
-        }
-        
-        $next_tier = $this->get_next_reward_tier($points, $reward_tiers);
-=======
         $total_points = WC_Loyalty()->points->get_user_points($user_id);
         $display_points = WC_Loyalty()->points->get_user_display_points($user_id);
         $reward_tiers = unserialize(get_option('wc_loyalty_reward_tiers'));
@@ -800,43 +586,21 @@ class WC_Loyalty_Rewards {
         
         // Normal next tier calculation
         $next_tier = $this->get_next_reward_tier($display_points, $reward_tiers);
->>>>>>> 815d2df76d4f986c861a1c2a5831e3bb6472e936
         
         if ($next_tier) {
             $points_needed = $next_tier - $display_points;
             $reward_type = '';
             
-<<<<<<< HEAD
-            if (isset($reward_tiers[$next_tier]) && isset($reward_tiers[$next_tier]['type'])) {
-                switch ($reward_tiers[$next_tier]['type']) {
-                    case 'discount':
-                        $discount_value = isset($reward_tiers[$next_tier]['value']) ? 
-                            intval($reward_tiers[$next_tier]['value']) : 0;
-                        $reward_type = sprintf(
-                            __('%d%% discount', 'wc-loyalty-gamification'), 
-                            $discount_value
-                        );
-=======
             if ($next_tier == 2000) {
                 $reward_type = __('a 60% discount coupon', 'wc-loyalty-gamification');
             } else if (isset($reward_tiers[$next_tier])) {
                 switch ($reward_tiers[$next_tier]['type']) {
                     case 'discount':
                         $reward_type = sprintf(__('%d%% discount', 'wc-loyalty-gamification'), $reward_tiers[$next_tier]['value']);
->>>>>>> 815d2df76d4f986c861a1c2a5831e3bb6472e936
                         break;
                     case 'free_shipping':
                         $reward_type = __('free shipping', 'wc-loyalty-gamification');
                         break;
-<<<<<<< HEAD
-                    case 'free_product':
-                        $reward_type = __('a free product', 'wc-loyalty-gamification');
-                        break;
-                    default:
-                        $reward_type = __('a reward', 'wc-loyalty-gamification');
-                        break;
-=======
->>>>>>> 815d2df76d4f986c861a1c2a5831e3bb6472e936
                 }
             }
             
@@ -850,8 +614,6 @@ class WC_Loyalty_Rewards {
             );
         }
     }
-<<<<<<< HEAD
-=======
 
     /**
      * Update coupon status to "used".
@@ -876,5 +638,4 @@ class WC_Loyalty_Rewards {
             update_user_meta($user_id, '_wc_loyalty_coupons', $user_coupons);
         }
     }
->>>>>>> 815d2df76d4f986c861a1c2a5831e3bb6472e936
 }
