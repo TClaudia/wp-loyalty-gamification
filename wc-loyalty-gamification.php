@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: WooCommerce Loyalty Gamification
+ * Plugin Name: WooCommerce Loyalty Gamification Version 1
  * Description: A loyalty gamification system for WooCommerce with points, progress bar, and rewards.
  * Version: 1.0.1
  * Author: Claudia Tun

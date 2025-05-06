@@ -15,6 +15,20 @@ defined('ABSPATH') || exit;
     $tier_key = WC_Loyalty()->points->get_user_tier($user_id);
     $tier_data = WC_Loyalty()->points->get_user_tier_data($user_id);
     $next_tier = WC_Loyalty()->points->get_next_tier_data($user_id);
+    
+    // Ensure tier_data has required keys
+    if (!is_array($tier_data)) {
+        $tier_data = array(
+            'name' => 'Bronze',
+            'color' => '#cd7f32',
+            'perks' => __('Welcome to our loyalty program!', 'wc-loyalty-gamification')
+        );
+    } else {
+        // Make sure required keys exist
+        if (!isset($tier_data['name'])) $tier_data['name'] = 'Bronze';
+        if (!isset($tier_data['color'])) $tier_data['color'] = '#cd7f32';
+        if (!isset($tier_data['perks'])) $tier_data['perks'] = __('Welcome to our loyalty program!', 'wc-loyalty-gamification');
+    }
     ?>
     <div class="wc-loyalty-current-tier" style="border-color: <?php echo esc_attr($tier_data['color']); ?>">
         <div class="wc-loyalty-tier-badge" style="background-color: <?php echo esc_attr($tier_data['color']); ?>">
@@ -26,30 +40,32 @@ defined('ABSPATH') || exit;
         </div>
     </div>
     
-    <?php if ($next_tier): ?>
+    <?php if ($next_tier && is_array($next_tier)): ?>
     <div class="wc-loyalty-next-tier-progress">
         <h4>
             <?php 
             printf(
                 esc_html__('Next Tier: %s', 'wc-loyalty-gamification'),
-                esc_html($next_tier['name'])
+                esc_html(isset($next_tier['name']) ? $next_tier['name'] : '')
             ); 
             ?>
         </h4>
         <div class="wc-loyalty-progress-container">
             <?php 
-            $points_needed = $next_tier['min_points'] - $points;
-            $percentage = min(100, ($points / $next_tier['min_points']) * 100);
+            $min_points = isset($next_tier['min_points']) ? $next_tier['min_points'] : 0;
+            $points_needed = $min_points - $points;
+            $percentage = ($min_points > 0) ? min(100, ($points / $min_points) * 100) : 0;
+            $next_tier_color = isset($next_tier['color']) ? $next_tier['color'] : '#7952b3';
             ?>
             <div class="wc-loyalty-progress-bar">
-                <div class="wc-loyalty-progress-fill" style="width: <?php echo esc_attr($percentage); ?>%; background-color: <?php echo esc_attr($next_tier['color']); ?>"></div>
+                <div class="wc-loyalty-progress-fill" style="width: <?php echo esc_attr($percentage); ?>%; background-color: <?php echo esc_attr($next_tier_color); ?>"></div>
             </div>
             <div class="wc-loyalty-progress-text">
                 <?php 
                 printf(
                     esc_html__('You need %d more points to reach %s level', 'wc-loyalty-gamification'),
                     $points_needed,
-                    esc_html($next_tier['name'])
+                    esc_html(isset($next_tier['name']) ? $next_tier['name'] : '')
                 ); 
                 ?>
             </div>
@@ -64,12 +80,15 @@ defined('ABSPATH') || exit;
         <div class="wc-loyalty-points-summary-label">
             <?php esc_html_e('Current Points', 'wc-loyalty-gamification'); ?>
             
-            <?php if ($next_tier = WC_Loyalty()->rewards->get_next_reward_tier($points)) : ?>
+            <?php 
+            $next_reward_tier = WC_Loyalty()->rewards->get_next_reward_tier($points);
+            if ($next_reward_tier): 
+            ?>
                 <div class="wc-loyalty-next-reward">
                     <?php 
                     printf(
                         esc_html__('You need %d more points to earn your next reward!', 'wc-loyalty-gamification'),
-                        $next_tier - $points
+                        $next_reward_tier - $points
                     ); 
                     ?>
                 </div>
@@ -90,7 +109,7 @@ defined('ABSPATH') || exit;
             
             <p><?php esc_html_e('Congratulations! You have enough points to claim a free product. Choose from one of the following:', 'wc-loyalty-gamification'); ?></p>
             
-            <?php if (!empty($available_products)) : ?>
+            <?php if (!empty($available_products) && is_array($available_products)) : ?>
                 <?php
                 // Group products by wishlist/regular
                 $wishlist_products = array_filter($available_products, function($product) {
@@ -110,14 +129,14 @@ defined('ABSPATH') || exit;
                             <?php foreach ($wishlist_products as $product) : ?>
                                 <div class="wc-loyalty-product-item">
                                     <div class="wc-loyalty-product-image">
-                                        <?php echo $product['image']; ?>
+                                        <?php echo isset($product['image']) ? $product['image'] : ''; ?>
                                         <div class="wc-loyalty-product-wishlist-badge">
                                             <?php esc_html_e('Wishlist', 'wc-loyalty-gamification'); ?>
                                         </div>
                                     </div>
                                     <div class="wc-loyalty-product-info">
-                                        <h5 class="wc-loyalty-product-name"><?php echo esc_html($product['name']); ?></h5>
-                                        <a href="#" class="claim-free-product" data-product-id="<?php echo esc_attr($product['id']); ?>">
+                                        <h5 class="wc-loyalty-product-name"><?php echo isset($product['name']) ? esc_html($product['name']) : ''; ?></h5>
+                                        <a href="#" class="claim-free-product" data-product-id="<?php echo isset($product['id']) ? esc_attr($product['id']) : ''; ?>">
                                             <?php esc_html_e('Claim This', 'wc-loyalty-gamification'); ?>
                                         </a>
                                     </div>
@@ -135,11 +154,11 @@ defined('ABSPATH') || exit;
                             <?php foreach ($regular_products as $product) : ?>
                                 <div class="wc-loyalty-product-item">
                                     <div class="wc-loyalty-product-image">
-                                        <?php echo $product['image']; ?>
+                                        <?php echo isset($product['image']) ? $product['image'] : ''; ?>
                                     </div>
                                     <div class="wc-loyalty-product-info">
-                                        <h5 class="wc-loyalty-product-name"><?php echo esc_html($product['name']); ?></h5>
-                                        <a href="#" class="claim-free-product" data-product-id="<?php echo esc_attr($product['id']); ?>">
+                                        <h5 class="wc-loyalty-product-name"><?php echo isset($product['name']) ? esc_html($product['name']) : ''; ?></h5>
+                                        <a href="#" class="claim-free-product" data-product-id="<?php echo isset($product['id']) ? esc_attr($product['id']) : ''; ?>">
                                             <?php esc_html_e('Claim This', 'wc-loyalty-gamification'); ?>
                                         </a>
                                     </div>
@@ -159,7 +178,7 @@ defined('ABSPATH') || exit;
     <div class="wc-loyalty-points-history">
         <h3><?php esc_html_e('Points History', 'wc-loyalty-gamification'); ?></h3>
         
-        <?php if (empty($points_history)) : ?>
+        <?php if (empty($points_history) || !is_array($points_history)) : ?>
             <div class="woocommerce-info">
                 <?php esc_html_e('No points history yet.', 'wc-loyalty-gamification'); ?>
             </div>
@@ -173,7 +192,12 @@ defined('ABSPATH') || exit;
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach (array_reverse($points_history) as $entry) : ?>
+                    <?php foreach (array_reverse($points_history) as $entry) : 
+                        // Ensure all required keys exist
+                        if (!isset($entry['date'])) $entry['date'] = current_time('mysql');
+                        if (!isset($entry['points'])) $entry['points'] = 0;
+                        if (!isset($entry['description'])) $entry['description'] = '';
+                    ?>
                         <tr>
                             <td>
                                 <?php 
@@ -199,7 +223,7 @@ defined('ABSPATH') || exit;
     <div class="wc-loyalty-claimed-rewards">
         <h3><?php esc_html_e('Claimed Rewards', 'wc-loyalty-gamification'); ?></h3>
         
-        <?php if (empty($claimed_rewards)) : ?>
+        <?php if (empty($claimed_rewards) || !is_array($claimed_rewards)) : ?>
             <div class="woocommerce-info">
                 <?php esc_html_e('No rewards claimed yet.', 'wc-loyalty-gamification'); ?>
             </div>
@@ -214,9 +238,13 @@ defined('ABSPATH') || exit;
                 </thead>
                 <tbody>
                     <?php 
+                    if (!isset($reward_tiers) || !is_array($reward_tiers)) {
+                        $reward_tiers = array();
+                    }
+                    
                     foreach (array_reverse($claimed_rewards, true) as $tier => $date) : 
                         $reward = isset($reward_tiers[$tier]) ? $reward_tiers[$tier] : null;
-                        if (!$reward) continue;
+                        if (!$reward || !is_array($reward) || !isset($reward['type'])) continue;
                     ?>
                         <tr>
                             <td>
@@ -234,9 +262,10 @@ defined('ABSPATH') || exit;
                                 <?php
                                 switch ($reward['type']) {
                                     case 'discount':
+                                        $value = isset($reward['value']) ? $reward['value'] : 0;
                                         printf(
                                             esc_html__('%d%% Discount', 'wc-loyalty-gamification'),
-                                            esc_html($reward['value'])
+                                            esc_html($value)
                                         );
                                         break;
                                     case 'free_shipping':
@@ -244,6 +273,9 @@ defined('ABSPATH') || exit;
                                         break;
                                     case 'free_product':
                                         esc_html_e('Free Product', 'wc-loyalty-gamification');
+                                        break;
+                                    default:
+                                        esc_html_e('Reward', 'wc-loyalty-gamification');
                                         break;
                                 }
                                 ?>
