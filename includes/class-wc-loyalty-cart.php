@@ -1,6 +1,6 @@
 <?php
 /**
- * WC Loyalty Cart Integration
+ * WC Loyalty Cart Integration - Fixed version
  *
  * Handles cart integration for loyalty coupons.
  */
@@ -40,11 +40,11 @@ class WC_Loyalty_Cart {
         $user_id = get_current_user_id();
         
         // Check if WC_Loyalty is properly initialized before using it
-        if (function_exists('WC_Loyalty') && WC_Loyalty() && WC_Loyalty()->rewards) {
-            $user_coupons = WC_Loyalty()->rewards->get_user_coupons($user_id);
-        } else {
+        if (!function_exists('WC_Loyalty') || !WC_Loyalty() || !WC_Loyalty()->rewards) {
             return; // Exit if WC_Loyalty or rewards component is not available
         }
+        
+        $user_coupons = WC_Loyalty()->rewards->get_user_coupons($user_id);
         
         // Filter out used and expired coupons
         $active_coupons = array_filter($user_coupons, function($coupon) {
@@ -91,6 +91,7 @@ class WC_Loyalty_Cart {
     
     /**
      * AJAX handler for applying loyalty coupons.
+     * Enhanced error handling and validation
      */
     public function apply_loyalty_coupon_ajax() {
         // Check if user is logged in
@@ -119,21 +120,57 @@ class WC_Loyalty_Cart {
             return;
         }
         
-        // Apply coupon to cart
-        $result = WC()->cart->apply_coupon($coupon_code);
+        // Verify this is a valid loyalty coupon for this user
+        $user_id = get_current_user_id();
+        $is_valid_coupon = false;
         
-        if ($result) {
-            // Mark the coupon as used in user meta
-            if (function_exists('WC_Loyalty') && WC_Loyalty() && WC_Loyalty()->rewards) {
-                WC_Loyalty()->rewards->mark_coupon_as_used($coupon_code, get_current_user_id());
-            }
+        if (function_exists('WC_Loyalty') && WC_Loyalty()->rewards) {
+            $user_coupons = WC_Loyalty()->rewards->get_user_coupons($user_id);
             
-            wp_send_json_success(array(
-                'message' => __('Coupon applied successfully!', 'wc-loyalty-gamification')
-            ));
-        } else {
+            foreach ($user_coupons as $coupon) {
+                if ($coupon['code'] === $coupon_code && !$coupon['is_used']) {
+                    $is_valid_coupon = true;
+                    break;
+                }
+            }
+        }
+        
+        if (!$is_valid_coupon) {
             wp_send_json_error(array(
-                'message' => __('Failed to apply coupon. Please try again.', 'wc-loyalty-gamification')
+                'message' => __('This coupon is not valid or has already been used.', 'wc-loyalty-gamification')
+            ));
+            return;
+        }
+        
+        // Check if WooCommerce is active and cart is available
+        if (!function_exists('WC') || !WC()->cart) {
+            wp_send_json_error(array(
+                'message' => __('WooCommerce cart is not available.', 'wc-loyalty-gamification')
+            ));
+            return;
+        }
+        
+        // Apply coupon to cart
+        try {
+            $applied = WC()->cart->apply_coupon($coupon_code);
+            
+            if ($applied) {
+                // Mark the coupon as used in user meta if the checkbox option is enabled
+                if (function_exists('WC_Loyalty') && WC_Loyalty()->rewards) {
+                    WC_Loyalty()->rewards->mark_coupon_as_used($coupon_code, $user_id);
+                }
+                
+                wp_send_json_success(array(
+                    'message' => __('Coupon applied successfully!', 'wc-loyalty-gamification')
+                ));
+            } else {
+                wp_send_json_error(array(
+                    'message' => __('Failed to apply coupon. Please try again.', 'wc-loyalty-gamification')
+                ));
+            }
+        } catch (Exception $e) {
+            wp_send_json_error(array(
+                'message' => $e->getMessage()
             ));
         }
     }

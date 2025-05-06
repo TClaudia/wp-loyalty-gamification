@@ -126,11 +126,19 @@ Options -Indexes";
             }
         }
     }
-
+    
     /**
-     * Enqueue plugin scripts and styles with version control
+     * Enqueue plugin scripts and styles with proper dependencies
      */
     public static function enqueue_assets() {
+        // Only enqueue for logged-in users
+        if (!is_user_logged_in()) {
+            return;
+        }
+        
+        // Ensure jQuery is loaded
+        wp_enqueue_script('jquery');
+        
         // Enqueue CSS
         wp_enqueue_style(
             'wc-loyalty-styles', 
@@ -138,17 +146,8 @@ Options -Indexes";
             array(), 
             WC_LOYALTY_VERSION
         );
-
-        // Enqueue JS
-        wp_enqueue_script(
-            'wc-loyalty-script', 
-            WC_LOYALTY_PLUGIN_URL . 'assets/js/loyalty-script.js', 
-            array('jquery'), 
-            WC_LOYALTY_VERSION, 
-            true
-        );
-
-        // Enqueue Circle Progress
+        
+        // Enqueue Circle Progress first (it's a dependency)
         wp_enqueue_script(
             'wc-circle-progress', 
             WC_LOYALTY_PLUGIN_URL . 'assets/js/circle-progress.min.js', 
@@ -157,13 +156,38 @@ Options -Indexes";
             true
         );
 
-            wp_enqueue_script(
-        'wc-loyalty-daily',
-        WC_LOYALTY_PLUGIN_URL . 'assets/js/daily-checkin.js',
-        array('jquery', 'wc-circle-progress', 'wc-loyalty-script'),
-        WC_LOYALTY_VERSION,
-        true
-    );
+        // Enqueue main script with proper dependencies
+        wp_enqueue_script(
+            'wc-loyalty-script', 
+            WC_LOYALTY_PLUGIN_URL . 'assets/js/loyalty-script.js', 
+            array('jquery', 'wc-circle-progress'), 
+            WC_LOYALTY_VERSION, 
+            true
+        );
+        
+        // Do NOT enqueue cart-cupon.js - it's redundant with loyalty-script.js
+        // The functionality is already included in the main script
+        
+        // Enqueue daily check-in script last
+        wp_enqueue_script(
+            'wc-loyalty-daily',
+            WC_LOYALTY_PLUGIN_URL . 'assets/js/daily-checkin.js',
+            array('jquery', 'wc-circle-progress', 'wc-loyalty-script'),
+            WC_LOYALTY_VERSION,
+            true
+        );
+        
+        // Pass necessary data to all scripts
+        wp_localize_script('wc-loyalty-script', 'wcLoyaltyData', array(
+            'ajaxurl' => admin_url('admin-ajax.php'),
+            'userPoints' => function_exists('WC_Loyalty') && WC_Loyalty()->points ? 
+                WC_Loyalty()->points->get_user_points(get_current_user_id()) : 0,
+            'nextTier' => function_exists('WC_Loyalty') && WC_Loyalty()->rewards ? 
+                WC_Loyalty()->rewards->get_next_reward_tier(
+                    WC_Loyalty()->points->get_user_points(get_current_user_id())
+                ) : null,
+            'nonce' => wp_create_nonce('wc_loyalty_nonce')
+        ));
     }
 }
 
@@ -297,11 +321,11 @@ class WC_Loyalty_Gamification {
     public $cart;
 
     /**
- * Daily check-in instance.
- *
- * @var WC_Loyalty_Daily
- */
-public $daily;
+     * Daily check-in instance.
+     *
+     * @var WC_Loyalty_Daily
+     */
+    public $daily;
 
     /**
      * The single instance of the class.
@@ -374,8 +398,8 @@ public $daily;
     }
 
     /**
-    * Initialize plugin components.
-    */
+     * Initialize plugin components.
+     */
     public function init_components() {
         // Initialize components in the correct dependency order
         $this->points = new WC_Loyalty_Points();
@@ -386,9 +410,10 @@ public $daily;
         $this->ajax = new WC_Loyalty_Ajax();
         $this->cart = new WC_Loyalty_Cart();
         $this->daily = new WC_Loyalty_Daily();
+        
         // Initialize check-in system
-require_once WC_LOYALTY_PLUGIN_DIR . 'includes/class-wc-loyalty-checkin.php';
-$this->checkin = new WC_Loyalty_Checkin();
+        require_once WC_LOYALTY_PLUGIN_DIR . 'includes/class-wc-loyalty-checkin.php';
+        $this->checkin = new WC_Loyalty_Checkin();
     }
 }
 
@@ -509,9 +534,35 @@ function wc_loyalty_mark_coupon_used_on_complete($order_id) {
             }
         }
     }
-
-
-    
 }
-// Încarcă traducerile pentru română
+
+/**
+ * Enhanced AJAX handler for applying loyalty coupons
+ */
+function wc_loyalty_handle_applied_coupon($coupon_code) {
+    if (!is_user_logged_in()) {
+        return;
+    }
+    
+    $user_id = get_current_user_id();
+    
+    // Only process for loyalty coupons
+    if (!function_exists('WC_Loyalty') || !WC_Loyalty()->rewards) {
+        return;
+    }
+    
+    // Check if this is a loyalty coupon
+    $user_coupons = WC_Loyalty()->rewards->get_user_coupons($user_id);
+    
+    foreach ($user_coupons as $coupon) {
+        if ($coupon['code'] === $coupon_code && !$coupon['is_used']) {
+            // Mark the coupon as used
+            WC_Loyalty()->rewards->mark_coupon_as_used($coupon_code, $user_id);
+            break;
+        }
+    }
+}
+add_action('woocommerce_applied_coupon', 'wc_loyalty_handle_applied_coupon');
+
+// Load translations for Romanian
 include_once(WC_LOYALTY_PLUGIN_DIR . 'wc-loyalty-translations.php');
