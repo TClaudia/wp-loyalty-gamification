@@ -37,45 +37,42 @@ class WC_Loyalty_Points {
      * @param int $order_id Order ID
      */
     public function add_points_for_purchase($order_id) {
-    // Avoid processing the same order multiple times
-    $already_processed = get_post_meta($order_id, '_loyalty_points_awarded', true);
-    if ($already_processed) {
-        error_log("POINTS DEBUG: Order $order_id already processed for points");
-        return;
+        // Avoid processing the same order multiple times
+        $already_processed = get_post_meta($order_id, '_loyalty_points_awarded', true);
+        if ($already_processed) {
+            return;
+        }
+        
+        $order = wc_get_order($order_id);
+        $user_id = $order->get_user_id();
+        
+        // Only proceed if this is a registered user
+        if ($user_id === 0) {
+            return;
+        }
+        
+        // Calculate points (points per euro spent)
+        $order_total = $order->get_total();
+        $points_per_euro = get_option('wc_loyalty_points_per_euro', 1);
+        $points_earned = floor($order_total * $points_per_euro);
+        
+        // Add points to user account
+        $this->add_points($user_id, $points_earned, sprintf(
+            __('Order #%s - %d points for €%.2f spent', 'wc-loyalty-gamification'),
+            $order_id,
+            $points_earned,
+            $order_total
+        ));
+        
+        // Mark order as processed
+        update_post_meta($order_id, '_loyalty_points_awarded', 'yes');
+        
+        // Add order note
+        $order->add_order_note(sprintf(
+            __('%d loyalty points awarded to customer.', 'wc-loyalty-gamification'),
+            $points_earned
+        ));
     }
-    
-    $order = wc_get_order($order_id);
-    $user_id = $order->get_user_id();
-    
-    // Only proceed if this is a registered user
-    if ($user_id === 0) {
-        return;
-    }
-    
-    // Calculate points (points per euro spent)
-    $order_total = $order->get_total();
-    $points_per_euro = get_option('wc_loyalty_points_per_euro', 1);
-    $points_earned = floor($order_total * $points_per_euro);
-    
-    error_log("POINTS DEBUG: Order $order_id - Total: $order_total, Points earned: $points_earned");
-    
-    // Add points to user account
-    $this->add_points($user_id, $points_earned, sprintf(
-        __('Order #%s - %d points for €%.2f spent', 'wc-loyalty-gamification'),
-        $order_id,
-        $points_earned,
-        $order_total
-    ));
-    
-    // Mark order as processed
-    update_post_meta($order_id, '_loyalty_points_awarded', 'yes');
-    
-    // Add order note
-    $order->add_order_note(sprintf(
-        __('%d loyalty points awarded to customer.', 'wc-loyalty-gamification'),
-        $points_earned
-    ));
-}
     
     /**
      * Add points for product review.
@@ -127,66 +124,92 @@ class WC_Loyalty_Points {
      * @return bool Success or failure
      */
     public function add_points($user_id, $points, $description = '') {
-       global $wpdb;
-    
-    $table_name = $wpdb->prefix . 'wc_loyalty_points';
-    $current_points = $this->get_user_points($user_id);
-    
-    error_log('POINTS DEBUG: Adding ' . $points . ' points for user ' . $user_id . '. Current total: ' . $current_points);
-    
-    $new_points = $current_points + $points;
-    
-    error_log('POINTS DEBUG: New points total would be: ' . $new_points);
-    
-    // Get current history
-    $points_history = $this->get_points_history($user_id);
-    
-    // Add new entry to history with backtrace to find the source
-    $debug_info = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3);
-    $call_source = '';
-    foreach ($debug_info as $call) {
-        $call_source .= (isset($call['class']) ? $call['class'] . '::' : '') . $call['function'] . ', ';
-    }
-    
-    error_log('POINTS DEBUG: Call source: ' . $call_source);
-    
+        global $wpdb;
         
-        // Check if points have reached or exceeded 2000
-        if ($new_points >= 2000) {
-            // Add reset entry to history
-            $points_history[] = array(
-                'date' => current_time('mysql'),
-                'points' => -$new_points, // Reset ALL points to zero
-                'description' => __('Points reset after reaching 2000 points threshold', 'wc-loyalty-gamification')
-            );
-            
-            // Reset points to zero instead of subtracting 2000
-            $new_points = 0;
-            
-            error_log('Points reset triggered. Points reset to: ' . $new_points);
-        }
+        $table_name = $wpdb->prefix . 'wc_loyalty_points';
+        $user_exists = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM $table_name WHERE user_id = %d",
+            $user_id
+        ));
         
-        // Update or insert user points
-        $result = $wpdb->replace(
-            $table_name,
-            array(
-                'user_id' => $user_id,
-                'points' => $new_points,
-                'points_history' => serialize($points_history),
-                'update_date' => current_time('mysql')
-            ),
-            array('%d', '%d', '%s', '%s')
+        // New history entry
+        $history_entry = array(
+            'date' => current_time('mysql'),
+            'points' => $points,
+            'description' => $description
         );
         
-        error_log('Final points after save: ' . $new_points . ', Result: ' . ($result ? 'Success' : 'Failed'));
-        
-        if ($result) {
-            // Trigger action after points update
-            do_action('wc_loyalty_points_updated', $user_id, $new_points);
-            return true;
+        // If user exists, update their points
+        if ($user_exists) {
+            // Get current points and history
+            $current_points = $this->get_user_points($user_id);
+            $points_history = $this->get_points_history($user_id);
+            
+            // Calculate new points total
+            $new_points = $current_points + $points;
+            if ($new_points < 0) {
+                $new_points = 0; // Don't allow negative points
+            }
+            
+            // Add history entry
+            if (!empty($points_history)) {
+                $points_history[] = $history_entry;
+            } else {
+                $points_history = array($history_entry);
+            }
+            
+            // Check if user reached 2000 points
+            $before_cycle = floor($current_points / 2000);
+            $after_cycle = floor($new_points / 2000);
+            
+            // If cycle increased, trigger special event
+            if ($after_cycle > $before_cycle) {
+                // Store the cycle level
+                update_user_meta($user_id, '_wc_loyalty_cycle_level', $after_cycle);
+                
+                // Trigger action for reaching 2000 points
+                do_action('wc_loyalty_reached_2000_points', $user_id);
+            }
+            
+            // Update database
+            $updated = $wpdb->update(
+                $table_name,
+                array(
+                    'points' => $new_points,
+                    'points_history' => serialize($points_history),
+                    'update_date' => current_time('mysql')
+                ),
+                array('user_id' => $user_id),
+                array('%d', '%s', '%s'),
+                array('%d')
+            );
+            
+            if ($updated) {
+                // Trigger action for points update
+                do_action('wc_loyalty_points_updated', $user_id, $new_points);
+            }
+            
+            return $updated;
+        } else {
+            // User doesn't exist, create a new record
+            $inserted = $wpdb->insert(
+                $table_name,
+                array(
+                    'user_id' => $user_id,
+                    'points' => max(0, $points), // Don't allow negative points for new users
+                    'points_history' => serialize(array($history_entry)),
+                    'update_date' => current_time('mysql')
+                ),
+                array('%d', '%d', '%s', '%s')
+            );
+            
+            if ($inserted) {
+                // Trigger action for points update
+                do_action('wc_loyalty_points_updated', $user_id, max(0, $points));
+            }
+            
+            return $inserted;
         }
-        
-        return false;
     }
     
     /**
@@ -290,17 +313,15 @@ class WC_Loyalty_Points {
      * @param string $to_status New status
      * @param WC_Order $order Order object
      */
-   public function refresh_points($order_id, $from_status, $to_status, $order) {
-    if ($to_status === 'completed') {
-        // Check if points were already awarded for this order
-        $already_processed = get_post_meta($order_id, '_loyalty_points_awarded', true);
-        if (!$already_processed) {
-            $this->add_points_for_purchase($order_id);
-        } else {
-            error_log("POINTS DEBUG: Skipping refresh_points for order $order_id - already processed");
+    public function refresh_points($order_id, $from_status, $to_status, $order) {
+        if ($to_status === 'completed') {
+            // Check if points were already awarded for this order
+            $already_processed = get_post_meta($order_id, '_loyalty_points_awarded', true);
+            if (!$already_processed) {
+                $this->add_points_for_purchase($order_id);
+            }
         }
     }
-}
     
     /**
      * Display message about earned points on thank you page.
@@ -339,6 +360,10 @@ class WC_Loyalty_Points {
         $points = $this->get_user_points($user_id);
         $tiers = unserialize(get_option('wc_loyalty_tiers', 'a:0:{}'));
         
+        if (empty($tiers)) {
+            return '';
+        }
+        
         // Default to lowest tier
         $current_tier = array_key_first($tiers);
         
@@ -361,9 +386,23 @@ class WC_Loyalty_Points {
      */
     public function get_user_tier_data($user_id) {
         $tier_key = $this->get_user_tier($user_id);
+        if (empty($tier_key)) {
+            return array(
+                'name' => 'Bronze',
+                'min_points' => 0,
+                'color' => '#cd7f32',
+                'perks' => 'Welcome to our loyalty program!'
+            );
+        }
+        
         $tiers = unserialize(get_option('wc_loyalty_tiers', 'a:0:{}'));
         
-        return isset($tiers[$tier_key]) ? $tiers[$tier_key] : array();
+        return isset($tiers[$tier_key]) ? $tiers[$tier_key] : array(
+            'name' => 'Bronze',
+            'min_points' => 0,
+            'color' => '#cd7f32',
+            'perks' => 'Welcome to our loyalty program!'
+        );
     }
     
     /**
@@ -374,6 +413,10 @@ class WC_Loyalty_Points {
      */
     public function get_next_tier_data($user_id) {
         $current_tier = $this->get_user_tier($user_id);
+        if (empty($current_tier)) {
+            return null;
+        }
+        
         $tiers = unserialize(get_option('wc_loyalty_tiers', 'a:0:{}'));
         $tier_keys = array_keys($tiers);
         
@@ -397,8 +440,8 @@ class WC_Loyalty_Points {
     public function get_user_display_points($user_id) {
         $points = $this->get_user_points($user_id);
         
-        // If points exceeds 2000, cycle it
-        if ($points > 2000) {
+        // If points exceeds 2000, return the remainder
+        if ($points >= 2000) {
             return $points % 2000;
         }
         
@@ -412,12 +455,34 @@ class WC_Loyalty_Points {
      * @return int Cycle level
      */
     public function get_user_cycle_level($user_id) {
-        $points = $this->get_user_points($user_id);
+        // Use the stored cycle level for better accuracy
+        $cycle_level = get_user_meta($user_id, '_wc_loyalty_cycle_level', true);
         
-        if ($points >= 2000) {
-            return floor($points / 2000);
+        // If no stored level, calculate it (for backward compatibility)
+        if (empty($cycle_level)) {
+            $points = $this->get_total_historical_points($user_id);
+            $cycle_level = floor($points / 2000);
         }
         
-        return 0;
+        return intval($cycle_level);
+    }
+    
+    /**
+     * Get total historical points earned (including points that have been reset).
+     *
+     * @param int $user_id User ID
+     * @return int Total historical points
+     */
+    public function get_total_historical_points($user_id) {
+        $history = $this->get_points_history($user_id);
+        $total = 0;
+        
+        foreach ($history as $entry) {
+            if ($entry['points'] > 0) {
+                $total += $entry['points'];
+            }
+        }
+        
+        return $total;
     }
 }

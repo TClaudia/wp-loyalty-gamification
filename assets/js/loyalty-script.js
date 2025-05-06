@@ -10,7 +10,9 @@
         init: function() {
             this.initModal();
             this.initCircleProgress();
-            this.initClaimProduct();
+            this.initCoupons();
+            this.initNotifications();
+            this.initCheckin();
         },
 
         // Initialize modal functionality
@@ -24,6 +26,11 @@
                 e.preventDefault();
                 modal.fadeIn(300);
                 WCLoyalty.initCircleProgress();
+                
+                // Manually bind copy buttons again
+                setTimeout(function(){
+                    WCLoyalty.bindCopyButtons();
+                }, 500);
             });
             
             // Close modal when clicking the close button
@@ -65,6 +72,12 @@
                 lineCap: 'round'
             });
 
+            // Make sure the canvas doesn't block clicks
+            $('.wc-loyalty-progress-circle canvas').css({
+                'pointer-events': 'none',
+                'position': 'absolute'
+            });
+
             // Add animation effect to points counter
             var pointsCount = $('.wc-loyalty-points-count');
             var targetPoints = parseInt(pointsCount.text(), 10);
@@ -80,66 +93,153 @@
                 }
             });
         },
-
-        // Initialize claim product functionality
-        initClaimProduct: function() {
-            $('.claim-free-product').on('click', function(e) {
+        
+        // Initialize coupon functionality
+        initCoupons: function() {
+            // Bind apply coupon button in cart
+            $(document).on('click', '.apply-loyalty-coupon', function(e) {
                 e.preventDefault();
                 
                 var $button = $(this);
-                var productId = $button.data('product-id');
+                var couponCode = $button.data('coupon');
                 
-                $button.prop('disabled', true).text('Processing...');
+                // Show processing status
+                $button.prop('disabled', true);
+                $button.text('Applying...');
                 
+                // Make AJAX request to apply coupon
                 $.ajax({
                     type: 'POST',
                     url: wcLoyaltyData.ajaxurl,
                     data: {
-                        action: 'claim_loyalty_reward',
+                        action: 'apply_loyalty_coupon',
                         nonce: wcLoyaltyData.nonce,
-                        reward_type: 'free_product',
-                        product_id: productId
+                        coupon_code: couponCode
                     },
                     success: function(response) {
                         if (response.success) {
                             // Show success message
                             WCLoyalty.showNotification(response.data.message, 'success');
                             
-                            // Redirect if provided
-                            if (response.data.redirect) {
-                                setTimeout(function() {
-                                    window.location.href = response.data.redirect;
-                                }, 1500);
-                            } else {
-                                $button.text('Claimed!').addClass('claimed');
-                                
-                                // Refresh page after a delay
-                                setTimeout(function() {
-                                    window.location.reload();
-                                }, 2000);
-                            }
+                            // Reload the page to reflect changes
+                            window.location.reload();
                         } else {
                             // Show error message
-                            WCLoyalty.showNotification(response.data.message, 'error');
-                            $button.prop('disabled', false).text('Claim This');
+                            WCLoyalty.showNotification(response.data.message || 'Failed to apply coupon', 'error');
+                            $button.prop('disabled', false);
+                            $button.text('Apply');
                         }
                     },
                     error: function() {
                         // Show error message
                         WCLoyalty.showNotification('An error occurred. Please try again.', 'error');
-                        $button.prop('disabled', false).text('Claim This');
+                        $button.prop('disabled', false);
+                        $button.text('Apply');
                     }
                 });
             });
+            
+            // Bind copy buttons
+            this.bindCopyButtons();
         },
+        
+        // Bind copy buttons directly
+        bindCopyButtons: function() {
+            // Handle standard coupon buttons
+            $('.wc-loyalty-copy-code').each(function() {
+                var $button = $(this);
 
+                $button.off('click').on('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    var couponCode = $button.data('code');
+                    var originalText = $button.text();
+
+                    // Simple copy method that works in most browsers
+                    WCLoyalty.simpleCopyToClipboard(couponCode);
+
+                    // Update button text
+                    $button.text('Copied!');
+
+                    // Show notification
+                    WCLoyalty.showNotification('Coupon code copied to clipboard!', 'success');
+
+                    // Reset button text after a delay
+                    setTimeout(function() {
+                        $button.text(originalText);
+                    }, 2000);
+                });
+            });
+
+            // Handle minimalist coupon buttons
+            var miniCopyButtons = $('.mini-copy-btn');
+            miniCopyButtons.each(function() {
+                var $button = $(this);
+                
+                $button.off('click').on('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    var couponCode = $button.data('code');
+                    var originalText = $button.text();
+                    
+                    // Copy to clipboard
+                    WCLoyalty.simpleCopyToClipboard(couponCode);
+                    
+                    // Visual feedback
+                    $button.text('Copied!');
+                    $button.addClass('copied');
+                    
+                    // Add animation to the parent coupon
+                    $button.parent().addClass('copy-animation');
+                    
+                    // Reset after delay
+                    setTimeout(function() {
+                        $button.text(originalText);
+                        $button.removeClass('copied');
+                        $button.parent().removeClass('copy-animation');
+                    }, 1500);
+                    
+                    // Show notification
+                    WCLoyalty.showNotification('Coupon code copied to clipboard!', 'success');
+                });
+            });
+        },
+        
+        // A simple copy method that works in most browsers
+        simpleCopyToClipboard: function(text) {
+            // Create textarea
+            var textarea = document.createElement('textarea');
+            textarea.value = text;
+            
+            // Make it not visible
+            textarea.style.position = 'absolute';
+            textarea.style.left = '-9999px';
+            textarea.style.top = '0';
+            textarea.setAttribute('readonly', '');
+            
+            // Add to body, select, copy, remove
+            document.body.appendChild(textarea);
+            textarea.select();
+            textarea.setSelectionRange(0, 99999);
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+        },
+        
+        // Initialize notifications
+        initNotifications: function() {
+            // Add notification handlers if needed
+            // Currently handled by showNotification
+        },
+        
         // Show notification
         showNotification: function(message, type) {
             // Remove any existing notifications
-            $('.wc-loyalty-notification').remove();
+            $('.wc-loyalty-notification-popup').remove();
             
             // Create notification element
-            var notification = $('<div class="wc-loyalty-notification wc-loyalty-notification-' + type + '">' + message + '</div>');
+            var notification = $('<div class="wc-loyalty-notification-popup wc-loyalty-notification-' + type + '">' + message + '</div>');
             
             // Append to body
             $('body').append(notification);
@@ -156,41 +256,65 @@
                     notification.remove();
                 }, 300);
             }, 4000);
+        },
+        
+        // Initialize check-in functionality
+        initCheckin: function() {
+            var self = this;
+            var checkinBtn = $('#wc-loyalty-checkin-btn');
+            
+            if (checkinBtn.length) {
+                checkinBtn.on('click', function(e) {
+                    e.preventDefault();
+                    
+                    // Change button state
+                    $(this).prop('disabled', true);
+                    $(this).text('Checking in...');
+                    
+                    // Make AJAX request
+                    $.ajax({
+                        type: 'POST',
+                        url: wcLoyaltyData.ajaxurl,
+                        data: {
+                            action: 'wc_loyalty_daily_checkin',
+                            nonce: wcLoyaltyData.nonce
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                // Show success notification
+                                self.showNotification(response.data.message, 'success');
+                                
+                                // Update the display - reload the modal content for simplicity
+                                setTimeout(function() {
+                                    location.reload();
+                                }, 1500);
+                            } else {
+                                // Show error message
+                                self.showNotification(response.data.message || 'Failed to check in. Please try again.', 'error');
+                                checkinBtn.prop('disabled', false);
+                                checkinBtn.text('Check In Now');
+                            }
+                        },
+                        error: function() {
+                            // Show error message
+                            self.showNotification('An error occurred. Please try again.', 'error');
+                            checkinBtn.prop('disabled', false);
+                            checkinBtn.text('Check In Now');
+                        }
+                    });
+                });
+            }
         }
     };
 
     // Initialize when document is ready
     $(document).ready(function() {
         WCLoyalty.init();
+        
+        // Rebind copy buttons after page load
+        setTimeout(function(){
+            WCLoyalty.bindCopyButtons();
+        }, 500);
     });
-
-// Handle copy coupon code functionality
-$('.wc-loyalty-copy-code').on('click', function(e) {
-    e.preventDefault();
-    
-    var couponCode = $(this).data('code');
-    var $button = $(this);
-    
-    // Create a temporary input element
-    var $temp = $("<input>");
-    $("body").append($temp);
-    $temp.val(couponCode).select();
-    
-    // Copy the text
-    document.execCommand("copy");
-    $temp.remove();
-    
-    // Change button text to indicate copied
-    var originalText = $button.text();
-    $button.text('Copied!');
-    
-    // Reset button text after a delay
-    setTimeout(function() {
-        $button.text(originalText);
-    }, 2000);
-    
-    // Show notification
-    WCLoyalty.showNotification('Coupon code copied to clipboard!', 'success');
-});
 
 })(jQuery);
