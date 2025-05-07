@@ -1,14 +1,10 @@
 <?php
 /**
-
- * Debug function to log AJAX and coupon application issues
+ * Fixed version of the AJAX handler for applying coupons
+ * Replace the existing function in class-wc-loyalty-ajax.php
  */
 
-
-/**
- * WC_Loyalty_Ajax Class
- */
-class WC_Loyalty_Ajax {
+ class WC_Loyalty_Ajax {
     
     /**
      * Constructor.
@@ -19,13 +15,6 @@ class WC_Loyalty_Ajax {
     }
     
 
-
-/**
- * AJAX handler for applying coupons directly with improved error handling.
- */
-/**
- * AJAX handler for applying coupons directly with improved error handling.
- */
 public function apply_loyalty_coupon() {
     // Start output buffering to catch any warnings
     ob_start();
@@ -53,7 +42,7 @@ public function apply_loyalty_coupon() {
         $coupon_code = isset($_POST['coupon_code']) ? sanitize_text_field($_POST['coupon_code']) : '';
         
         // Validate coupon code
-        if (!$coupon_code) {
+        if (empty($coupon_code)) {
             ob_end_clean(); // Clean output buffer before sending response
             wp_send_json_error(array(
                 'message' => __('Invalid coupon code.', 'wc-loyalty-gamification')

@@ -494,7 +494,14 @@ public function display_minimalist_button() {
         ));
         
         // Sortează milestone-urile după numărul de zile
-        ksort($milestones);
+        // Fix for line 497 in class-wc-loyalty-daily.php
+if (is_array($milestones)) {
+    ksort($milestones);
+} else {
+    // Handle the case where $milestones is not an array
+    $milestones = array(); // Default to empty array
+    // Or properly decode/convert the string to an array if possible
+}
         
         ?>
         <div class="wc-loyalty-milestone-rewards">

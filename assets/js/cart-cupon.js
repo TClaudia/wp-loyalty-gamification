@@ -37,59 +37,57 @@
             var originalText = $button.text();
             $button.text('Applying...');
             
-            // Make the AJAX request to apply the coupon directly to WooCommerce
-           // Make the AJAX request to apply the coupon
-$.ajax({
-    type: 'POST',
-    url: wcLoyaltyData.ajaxurl,
-    data: {
-        action: 'apply_loyalty_coupon',
-        nonce: wcLoyaltyData.nonce,
-        coupon_code: couponCode
-    },
-    success: function(response) {
-        try {
-            // If response is a string (possibly containing warnings), try to extract valid JSON
-            if (typeof response === 'string') {
-                // Try to extract JSON from possibly malformed response
-                var match = response.match(/\{.*\}/);
-                if (match) {
-                    response = JSON.parse(match[0]);
-                } else {
-                    throw new Error('Invalid JSON response');
+            // Make the AJAX request to apply the coupon
+            $.ajax({
+                type: 'POST',
+                url: wcLoyaltyData.ajaxurl,
+                data: {
+                    action: 'apply_loyalty_coupon',
+                    nonce: wcLoyaltyData.nonce,
+                    coupon_code: couponCode
+                },
+                success: function(response) {
+                    try {
+                        // Handle response based on its type
+                        if (typeof response === 'string') {
+                            // Try to parse JSON string
+                            response = JSON.parse(response);
+                        }
+                        
+                        if (response && response.success) {
+                            // Show success message
+                            alert(response.data && response.data.message ? 
+                                 response.data.message : 'Coupon applied successfully!');
+                            
+                            // Reload the page to reflect changes
+                            window.location.reload();
+                        } else {
+                            // Show error message
+                            var errorMsg = (response && response.data && response.data.message) ? 
+                                          response.data.message : 'Failed to apply coupon';
+                            alert(errorMsg);
+                            $button.prop('disabled', false);
+                            $button.text(originalText);
+                        }
+                    } catch (e) {
+                        console.error('Error parsing response:', e);
+                        console.log('Raw response:', response);
+                        alert('Error applying coupon. Please try again.');
+                        $button.prop('disabled', false);
+                        $button.text(originalText);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('AJAX Error:', status, error);
+                    // Log response text for debugging
+                    if (xhr && xhr.responseText) {
+                        console.log('Response text:', xhr.responseText);
+                    }
+                    alert('An error occurred. Please try again.');
+                    $button.prop('disabled', false);
+                    $button.text(originalText);
                 }
-            }
-            
-            if (response && response.success) {
-                // Show success message
-                alert('Coupon applied successfully!');
-                
-                // Reload the page to reflect changes
-                window.location.reload();
-            } else {
-                // Show error message
-                var errorMsg = (response && response.data && response.data.message) ? 
-                              response.data.message : 'Failed to apply coupon';
-                alert(errorMsg);
-                $button.prop('disabled', false);
-                $button.text(originalText);
-            }
-        } catch (e) {
-            console.error('Error parsing response:', e);
-            console.error('Raw response:', response);
-            alert('Error applying coupon. Please try again.');
-            $button.prop('disabled', false);
-            $button.text(originalText);
-        }
-    },
-    error: function(xhr, status, error) {
-        console.error('AJAX Error:', status, error);
-        console.error('Response text:', xhr.responseText);
-        alert('An error occurred. Please try again.');
-        $button.prop('disabled', false);
-        $button.text(originalText);
-    }
-});
-});  // End of click event handler
-   }); 
+            });
+        });
+    });
 })(jQuery);

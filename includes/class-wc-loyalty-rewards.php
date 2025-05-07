@@ -17,28 +17,52 @@ class WC_Loyalty_Rewards {
     /**
      * Constructor.
      */
-    public function __construct() {
-        // Check reward eligibility after points update
-        add_action('wc_loyalty_points_updated', array($this, 'check_reward_eligibility'), 10, 2);
+/**
+ * Constructor cu cod de reparare recompense
+ */
+public function __construct() {
+    // Cod de reparare - Verifică și restaurează recompensele implicite
+    $reward_tiers = unserialize(get_option('wc_loyalty_reward_tiers', 'a:0:{}'));
+    
+    // Verifică dacă reward_tiers este gol sau invalid
+    if (empty($reward_tiers) || !is_array($reward_tiers) || count($reward_tiers) < 3) {
+        // Setează valorile implicite pentru toate nivelurile, inclusiv 2000
+        $default_reward_tiers = array(
+            500 => array('type' => 'discount', 'value' => 20),
+            1000 => array('type' => 'discount', 'value' => 40),
+            1500 => array('type' => 'free_shipping', 'value' => true),
+            2000 => array('type' => 'discount', 'value' => 60, 'max_order' => 400)
+        );
         
-        // Special handler for when user reaches exactly 2000 points
-        add_action('wc_loyalty_reached_2000_points', array($this, 'handle_premium_discount_eligibility'));
+        // Salvează valorile implicite în baza de date
+        update_option('wc_loyalty_reward_tiers', serialize($default_reward_tiers));
         
-        // Apply free shipping if earned
-        add_filter('woocommerce_package_rates', array($this, 'apply_free_shipping'), 100, 2);
-        
-        // Add notification for upcoming reward
-        add_action('woocommerce_before_single_product', array($this, 'product_reward_notice'));
-        
-        // Mark coupon as used when applied
-        add_action('woocommerce_applied_coupon', array($this, 'handle_applied_coupon'));
-        
-        // Add discount label to cart and checkout
-        add_filter('woocommerce_cart_totals_coupon_label', array($this, 'custom_coupon_label'), 10, 2);
-        
-        // Add message about free shipping from loyalty program
-        add_action('woocommerce_before_shipping_calculator', array($this, 'display_loyalty_shipping_message'));
+        // Adaugă o notă în log pentru depanare
+        error_log('WC Loyalty: Nivelurile de recompensă au fost restaurate la valorile implicite.');
     }
+    
+    // Continuă cu restul constructorului original
+    // Check reward eligibility after points update
+    add_action('wc_loyalty_points_updated', array($this, 'check_reward_eligibility'), 10, 2);
+    
+    // Special handler for when user reaches exactly 2000 points
+    add_action('wc_loyalty_reached_2000_points', array($this, 'handle_premium_discount_eligibility'));
+    
+    // Apply free shipping if earned
+    add_filter('woocommerce_package_rates', array($this, 'apply_free_shipping'), 100, 2);
+    
+    // Add notification for upcoming reward
+    add_action('woocommerce_before_single_product', array($this, 'product_reward_notice'));
+    
+    // Mark coupon as used when applied
+    add_action('woocommerce_applied_coupon', array($this, 'handle_applied_coupon'));
+    
+    // Add discount label to cart and checkout
+    add_filter('woocommerce_cart_totals_coupon_label', array($this, 'custom_coupon_label'), 10, 2);
+    
+    // Add message about free shipping from loyalty program
+    add_action('woocommerce_before_shipping_calculator', array($this, 'display_loyalty_shipping_message'));
+}
     
     /**
      * Display free shipping message if applied

@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: WooCommerce Loyalty Gamification Version 1
+ * Plugin Name: WooCommerce Loyalty Gamification Version 11
  * Description: A loyalty gamification system for WooCommerce with points, progress bar, and rewards.
  * Version: 1.1.0
  * Author: Claudia Tun
@@ -599,32 +599,7 @@ function wc_loyalty_mark_coupon_used_on_complete($order_id) {
     }
 }
 
-/**
- * Enhanced AJAX handler for applying loyalty coupons
- */
-function wc_loyalty_handle_applied_coupon($coupon_code) {
-    if (!is_user_logged_in()) {
-        return;
-    }
-    
-    $user_id = get_current_user_id();
-    
-    // Only process for loyalty coupons
-    if (!function_exists('WC_Loyalty') || !WC_Loyalty()->rewards) {
-        return;
-    }
-    
-    // Check if this is a loyalty coupon
-    $user_coupons = WC_Loyalty()->rewards->get_user_coupons($user_id);
-    
-    foreach ($user_coupons as $coupon) {
-        if ($coupon['code'] === $coupon_code && !$coupon['is_used']) {
-            // Mark the coupon as used
-            WC_Loyalty()->rewards->mark_coupon_as_used($coupon_code, $user_id);
-            break;
-        }
-    }
-}
+
 add_action('woocommerce_applied_coupon', 'wc_loyalty_handle_applied_coupon');
 
 
@@ -644,24 +619,7 @@ function wc_loyalty_debug_log($message, $data = null) {
         
         error_log($log_message);
     }
-
-/**
- * Debug function to log AJAX and coupon application issues
- */
-function wc_loyalty_debug_log($message, $data = null) {
-    if (defined('WP_DEBUG') && WP_DEBUG === true) {
-        $log_message = '[WC Loyalty] ' . $message;
-        if ($data !== null) {
-            if (is_array($data) || is_object($data)) {
-                $log_message .= ': ' . print_r($data, true);
-            } else {
-                $log_message .= ': ' . $data;
-            }
-        }
-        error_log($log_message);
-    }
 }
-
 
 
 /**
@@ -703,7 +661,7 @@ function wc_loyalty_handle_applied_coupon($coupon_code) {
         }
     }
 }
-}
+
 
 // Load translations for Romanian
 include_once(WC_LOYALTY_PLUGIN_DIR . 'wc-loyalty-translations.php');
