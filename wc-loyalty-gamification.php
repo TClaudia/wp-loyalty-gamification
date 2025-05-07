@@ -661,6 +661,48 @@ function wc_loyalty_debug_log($message, $data = null) {
         error_log($log_message);
     }
 }
+
+
+
+/**
+ * Handle applied coupon through WooCommerce hooks
+ * 
+ * @param string $coupon_code The coupon code that was applied
+ */
+function wc_loyalty_handle_applied_coupon($coupon_code) {
+    if (!is_user_logged_in()) {
+        return;
+    }
+    
+    $user_id = get_current_user_id();
+    
+    // Only process if WC_Loyalty is available
+    if (!function_exists('WC_Loyalty') || !WC_Loyalty()->rewards) {
+        return;
+    }
+    
+    // Check if this is a loyalty coupon - find direct method to check
+    $user_coupons = WC_Loyalty()->rewards->get_user_coupons($user_id);
+    
+    if (is_array($user_coupons)) {
+        foreach ($user_coupons as $coupon) {
+            if (isset($coupon['code']) && $coupon['code'] === $coupon_code) {
+                // Use a direct approach to mark coupon as used
+                $user_coupons_updated = $user_coupons;
+                
+                foreach ($user_coupons_updated as $key => $c) {
+                    if ($c['code'] === $coupon_code) {
+                        $user_coupons_updated[$key]['is_used'] = true;
+                    }
+                }
+                
+                // Update user coupons metadata
+                update_user_meta($user_id, '_wc_loyalty_coupons', $user_coupons_updated);
+                break;
+            }
+        }
+    }
+}
 }
 
 // Load translations for Romanian

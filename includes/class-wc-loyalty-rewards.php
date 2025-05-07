@@ -647,4 +647,31 @@ private function generate_discount_coupon($user_id, $discount_value, $max_order 
             update_user_meta($user_id, '_wc_loyalty_coupons', $user_coupons);
         }
     }
+
+
+    /**
+ * Handle applied coupon
+ *
+ * @param string $coupon_code The coupon code
+ */
+public function handle_applied_coupon($coupon_code) {
+    if (!is_user_logged_in()) {
+        return;
+    }
+    
+    $user_id = get_current_user_id();
+    
+    // Check if this is a loyalty coupon
+    $user_coupons = $this->get_user_coupons($user_id);
+    
+    if (is_array($user_coupons)) {
+        foreach ($user_coupons as $coupon) {
+            if (isset($coupon['code']) && $coupon['code'] === $coupon_code && !$coupon['is_used']) {
+                // Mark the coupon as used
+                $this->mark_coupon_as_used($coupon_code, $user_id);
+                break;
+            }
+        }
+    }
+}
 }

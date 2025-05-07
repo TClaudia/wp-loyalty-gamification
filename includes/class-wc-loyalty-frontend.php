@@ -60,6 +60,23 @@ class WC_Loyalty_Frontend {
             WC_LOYALTY_VERSION,
             true
         );
+
+        // Add cart coupon handling script
+if (is_cart() || is_checkout()) {
+    wp_enqueue_script(
+        'wc-loyalty-cart-coupon',
+        WC_LOYALTY_PLUGIN_URL . 'assets/js/cart-cupon.js',
+        array('jquery'),
+        WC_LOYALTY_VERSION,
+        true
+    );
+    
+    // Make sure to localize the script with AJAX data
+    wp_localize_script('wc-loyalty-cart-coupon', 'wcLoyaltyData', array(
+        'ajaxurl' => admin_url('admin-ajax.php'),
+        'nonce' => wp_create_nonce('wc_loyalty_nonce')
+    ));
+}
         
         // Add dashicons for the star icon
         wp_enqueue_style('dashicons');

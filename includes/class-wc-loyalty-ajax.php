@@ -23,12 +23,17 @@ class WC_Loyalty_Ajax {
 /**
  * AJAX handler for applying coupons directly with improved error handling.
  */
-
+/**
+ * AJAX handler for applying coupons directly with improved error handling.
+ */
 public function apply_loyalty_coupon() {
-    wc_loyalty_debug_log('Starting apply_loyalty_coupon AJAX function');
+    // Start output buffering to catch any warnings
+    ob_start();
+
     try {
         // Verify nonce
         if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'wc_loyalty_nonce')) {
+            ob_end_clean(); // Clean output buffer before sending response
             wp_send_json_error(array(
                 'message' => __('Security check failed.', 'wc-loyalty-gamification')
             ));
@@ -37,6 +42,7 @@ public function apply_loyalty_coupon() {
         
         // Check if user is logged in
         if (!is_user_logged_in()) {
+            ob_end_clean(); // Clean output buffer before sending response
             wp_send_json_error(array(
                 'message' => __('You must be logged in to apply coupons.', 'wc-loyalty-gamification')
             ));
@@ -48,6 +54,7 @@ public function apply_loyalty_coupon() {
         
         // Validate coupon code
         if (!$coupon_code) {
+            ob_end_clean(); // Clean output buffer before sending response
             wp_send_json_error(array(
                 'message' => __('Invalid coupon code.', 'wc-loyalty-gamification')
             ));
@@ -56,6 +63,7 @@ public function apply_loyalty_coupon() {
         
         // Check if WooCommerce is active and cart is available
         if (!function_exists('WC') || !WC() || !isset(WC()->cart)) {
+            ob_end_clean(); // Clean output buffer before sending response
             wp_send_json_error(array(
                 'message' => __('WooCommerce cart is not available. Please refresh the page and try again.', 'wc-loyalty-gamification')
             ));
@@ -67,6 +75,7 @@ public function apply_loyalty_coupon() {
         
         // Make sure rewards component is available
         if (!method_exists(WC_Loyalty(), 'rewards') || !method_exists(WC_Loyalty()->rewards, 'get_user_coupons')) {
+            ob_end_clean(); // Clean output buffer before sending response
             wp_send_json_error(array(
                 'message' => __('Rewards system is not available. Please contact support.', 'wc-loyalty-gamification')
             ));
@@ -88,6 +97,7 @@ public function apply_loyalty_coupon() {
         }
         
         if (!$is_valid_coupon) {
+            ob_end_clean(); // Clean output buffer before sending response
             wp_send_json_error(array(
                 'message' => __('This coupon is not valid or has already been used.', 'wc-loyalty-gamification')
             ));
@@ -102,6 +112,9 @@ public function apply_loyalty_coupon() {
         
         // Since WC 3.0+, we check notices to see if it worked
         $notices = wc_get_notices('error');
+        
+        // Clean output buffer before sending response
+        ob_end_clean();
         
         if (empty($notices)) {
             // Success - no error notices means it worked
@@ -122,9 +135,16 @@ public function apply_loyalty_coupon() {
         // Log the error for debugging
         error_log('WC Loyalty coupon error: ' . $e->getMessage());
         
+        // Clean output buffer before sending error response
+        ob_end_clean();
+        
         wp_send_json_error(array(
             'message' => __('An unexpected error occurred. Please try again later.', 'wc-loyalty-gamification')
         ));
     }
+
+    // If we reach here, ensure buffer is cleaned in case something went wrong
+    ob_end_clean();
+    exit;
 }
 }

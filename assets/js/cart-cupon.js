@@ -4,78 +4,92 @@
 (function($) {
     'use strict';
     
-    // Executăm codul după ce documentul este gata
+    // Execute code when document is ready
     $(document).ready(function() {
-        // Verificăm dacă jQuery este disponibil
+        // Check if jQuery is available
         if (typeof $ !== 'function') {
             console.error('jQuery is not available. Coupon application may not work properly.');
             return;
         }
         
-        // Gestionăm click-ul pe butonul de aplicare cupon
+        // Handle click on apply coupon button
         $(document).on('click', '.apply-loyalty-coupon', function(e) {
             e.preventDefault();
-            e.stopPropagation(); // Prevenim propagarea evenimentului
+            e.stopPropagation(); // Prevent event propagation
             
             var $button = $(this);
             var couponCode = $button.data('coupon');
             
-            // Verificăm dacă avem un cod de cupon valid
+            // Check if we have a valid coupon code
             if (!couponCode) {
                 alert('Invalid coupon code');
                 return;
             }
             
-            // Verificăm dacă avem datele AJAX necesare
+            // Check if we have the necessary AJAX data
             if (typeof wcLoyaltyData === 'undefined' || !wcLoyaltyData.ajaxurl) {
                 alert('Error: Missing configuration data');
                 return;
             }
             
-            // Afișăm starea de procesare
+            // Show processing state
             $button.prop('disabled', true);
             var originalText = $button.text();
             $button.text('Applying...');
             
-            // Facem cererea AJAX pentru aplicarea cuponului
-            $.ajax({
-                type: 'POST',
-                url: wcLoyaltyData.ajaxurl,
-                data: {
-                    action: 'apply_loyalty_coupon',
-                    nonce: wcLoyaltyData.nonce,
-                    coupon_code: couponCode
-                },
-                success: function(response) {
-                    if (response && response.success) {
-                        // Afișăm mesajul de succes
-                        if (response.data && response.data.message) {
-                            alert(response.data.message);
-                        } else {
-                            alert('Coupon applied successfully!');
-                        }
-                        
-                        // Reîncărcăm pagina pentru a reflecta modificările
-                        window.location.reload();
-                    } else {
-                        // Afișăm mesajul de eroare
-                        var errorMsg = (response && response.data && response.data.message) ? 
-                                      response.data.message : 'Failed to apply coupon';
-                        alert(errorMsg);
-                        $button.prop('disabled', false);
-                        $button.text(originalText);
-                    }
-                },
-                error: function(xhr, status, error) {
-                    // Afișăm mesajul de eroare detaliat pentru debugging
-                    console.error('AJAX Error:', status, error);
-                    alert('An error occurred. Please try again.');
-                    $button.prop('disabled', false);
-                    $button.text(originalText);
-                },
-                // Adăugăm timeout pentru a preveni cereri blocate
-                timeout: 15000
-            });
-        });
-    });
+            // Make the AJAX request to apply the coupon directly to WooCommerce
+           // Make the AJAX request to apply the coupon
+$.ajax({
+    type: 'POST',
+    url: wcLoyaltyData.ajaxurl,
+    data: {
+        action: 'apply_loyalty_coupon',
+        nonce: wcLoyaltyData.nonce,
+        coupon_code: couponCode
+    },
+    success: function(response) {
+        try {
+            // If response is a string (possibly containing warnings), try to extract valid JSON
+            if (typeof response === 'string') {
+                // Try to extract JSON from possibly malformed response
+                var match = response.match(/\{.*\}/);
+                if (match) {
+                    response = JSON.parse(match[0]);
+                } else {
+                    throw new Error('Invalid JSON response');
+                }
+            }
+            
+            if (response && response.success) {
+                // Show success message
+                alert('Coupon applied successfully!');
+                
+                // Reload the page to reflect changes
+                window.location.reload();
+            } else {
+                // Show error message
+                var errorMsg = (response && response.data && response.data.message) ? 
+                              response.data.message : 'Failed to apply coupon';
+                alert(errorMsg);
+                $button.prop('disabled', false);
+                $button.text(originalText);
+            }
+        } catch (e) {
+            console.error('Error parsing response:', e);
+            console.error('Raw response:', response);
+            alert('Error applying coupon. Please try again.');
+            $button.prop('disabled', false);
+            $button.text(originalText);
+        }
+    },
+    error: function(xhr, status, error) {
+        console.error('AJAX Error:', status, error);
+        console.error('Response text:', xhr.responseText);
+        alert('An error occurred. Please try again.');
+        $button.prop('disabled', false);
+        $button.text(originalText);
+    }
+});
+});  // End of click event handler
+   }); 
 })(jQuery);
