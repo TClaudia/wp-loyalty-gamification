@@ -303,51 +303,60 @@ class WC_Loyalty_Rewards {
         $notifications = get_user_meta($user_id, '_wc_loyalty_notifications', true);
         return is_array($notifications) ? $notifications : array();
     }
-    
     /**
-     * Generate discount coupon.
-     *
-     * @param int $user_id User ID
-     * @param int $discount_value Discount percentage
-     * @return string|false Coupon code or false on failure
-     */
-    private function generate_discount_coupon($user_id, $discount_value, $max_order = 0) {
-        $user = get_user_by('id', $user_id);
-        
-        if (!$user) {
-            error_log("Cannot generate discount coupon: User ID $user_id not found");
-            return false;
-        }
-        
-        $coupon_code = 'LOYALTY' . strtoupper(substr(md5(uniqid(mt_rand(), true)), 0, 8));
-        
-        $coupon = array(
-            'post_title' => $coupon_code,
-            'post_content' => '',
-            'post_status' => 'publish',
-            'post_author' => 1,
-            'post_type' => 'shop_coupon'
-        );
-        
-        $coupon_id = wp_insert_post($coupon);
-        
-        if ($coupon_id && !is_wp_error($coupon_id)) {
-            // Set coupon data
-            update_post_meta($coupon_id, 'discount_type', 'percent');
-            update_post_meta($coupon_id, 'coupon_amount', $discount_value);
-            update_post_meta($coupon_id, 'individual_use', 'yes');
-            update_post_meta($coupon_id, 'usage_limit', '1');
-            update_post_meta($coupon_id, 'expiry_date', date('Y-m-d', strtotime('+30 days')));
-            update_post_meta($coupon_id, 'apply_before_tax', 'no');
-            update_post_meta($coupon_id, 'free_shipping', 'no');
-            update_post_meta($coupon_id, 'customer_email', array($user->user_email));
-            
-            return $coupon_code;
-        }
-        
-        error_log("Failed to create WooCommerce coupon for user ID $user_id");
+ * Generate discount coupon.
+ *
+ * @param int $user_id User ID
+ * @param int $discount_value Discount percentage
+ * @param int $max_order Maximum order value (0 for no limit)
+ * @return string|false Coupon code or false on failure
+ */
+private function generate_discount_coupon($user_id, $discount_value, $max_order = 0) {
+    $user = get_user_by('id', $user_id);
+    
+    if (!$user) {
+        error_log("Cannot generate discount coupon: User ID $user_id not found");
         return false;
     }
+    
+    // Generate a unique coupon code
+    $coupon_code = 'LOYALTY' . strtoupper(substr(md5(uniqid(mt_rand(), true) . $user_id . time()), 0, 8));
+    
+    // Create coupon post
+    $coupon = array(
+        'post_title' => $coupon_code,
+        'post_content' => '',
+        'post_status' => 'publish',
+        'post_author' => 1,
+        'post_type' => 'shop_coupon'
+    );
+    
+    $coupon_id = wp_insert_post($coupon);
+    
+    if ($coupon_id && !is_wp_error($coupon_id)) {
+        // Set coupon data
+        update_post_meta($coupon_id, 'discount_type', 'percent');
+        update_post_meta($coupon_id, 'coupon_amount', $discount_value);
+        update_post_meta($coupon_id, 'individual_use', 'yes');
+        update_post_meta($coupon_id, 'usage_limit', '1');
+        update_post_meta($coupon_id, 'usage_limit_per_user', '1');
+        update_post_meta($coupon_id, 'expiry_date', date('Y-m-d', strtotime('+30 days')));
+        update_post_meta($coupon_id, 'apply_before_tax', 'yes');
+        update_post_meta($coupon_id, 'free_shipping', 'no');
+        update_post_meta($coupon_id, '_wc_loyalty_coupon', 'yes'); // Mark as loyalty coupon
+        update_post_meta($coupon_id, 'customer_email', array($user->user_email));
+        
+        // Set maximum spend if specified
+        if ($max_order > 0) {
+            update_post_meta($coupon_id, 'maximum_amount', $max_order);
+        }
+        
+        return $coupon_code;
+    }
+    
+    error_log("Failed to create WooCommerce coupon for user ID $user_id");
+    return false;
+}
     
     /**
      * Send reward email.

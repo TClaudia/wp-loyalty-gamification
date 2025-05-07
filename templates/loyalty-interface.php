@@ -335,144 +335,208 @@ do_action('wc_loyalty_after_points_display');
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize main modal functionality
-    const modal = document.getElementById('wc-loyalty-modal');
-    const toggleBtn = document.getElementById('wc-loyalty-toggle-btn');
-    const closeBtn = document.querySelector('.wc-loyalty-close');
-    
-    // Open modal when clicking the button
-    toggleBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        modal.style.display = 'block';
-        
-        // Initialize circle progress
-        initCircleProgress();
-        
-        // Manually bind copy buttons in main modal
-        bindMainCopyButtons();
-    });
-    
-    // Close modal when clicking the close button
-    closeBtn.addEventListener('click', function() {
-        modal.style.display = 'none';
-    });
-    
-    // Close modal when clicking outside
-    window.addEventListener('click', function(event) {
-        if (event.target === modal) {
-            modal.style.display = 'none';
-        }
-    });
-    
-    // Initialize circle progress
-    function initCircleProgress() {
-        var progressCircle = document.querySelector('.wc-loyalty-progress-circle');
-        if (!progressCircle) return;
-        
-        var progress = progressCircle.getAttribute('data-progress');
-        
-        if (typeof $.fn.circleProgress === 'function') {
-            $(progressCircle).circleProgress({
-                value: progress / 100,
-                size: 180,
-                thickness: 15,
-                fill: {
-                    gradient: ["#7952b3", "#fd7e14"]
-                },
-                emptyFill: "#f0f0f0",
-                animation: {
-                    duration: 1200
-                },
-                lineCap: 'round'
-            });
-            
-            // Make sure the canvas doesn't block clicks
-            $('.wc-loyalty-progress-circle canvas').css({
-                'pointer-events': 'none',
-                'position': 'absolute'
-            });
-        }
+    // jQuery safety check - crucial fix
+    if (typeof jQuery === 'undefined') {
+        console.error('jQuery is not loaded. Loyalty functionality may not work properly.');
+        return;
     }
     
-    // Bind copy buttons in main modal
-    function bindMainCopyButtons() {
-        const copyButtons = document.querySelectorAll('.wc-loyalty-copy-code');
+    // Use an IIFE to create a local jQuery instance
+    (function($) {
+        // Initialize main modal functionality
+        const modal = document.getElementById('wc-loyalty-modal');
+        const toggleBtn = document.getElementById('wc-loyalty-toggle-btn');
+        const closeBtn = document.querySelector('.wc-loyalty-close');
         
-        copyButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                const couponCode = this.getAttribute('data-code');
-                const originalText = this.textContent;
+        // Open modal when clicking the button
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                modal.style.display = 'block';
                 
-                // Copy to clipboard
-                copyToClipboard(couponCode);
+                // Safe circle progress initialization
+                safeInitCircleProgress();
                 
-                // Update button text
-                this.textContent = 'Copied!';
-                
-                // Reset button text after a delay
-                setTimeout(() => {
-                    this.textContent = originalText;
-                }, 2000);
+                // Manually bind copy buttons in main modal
+                bindMainCopyButtons();
             });
-        });
-    }
-    
-    // Mini coupon panel toggle
-    const miniToggleButton = document.getElementById('mini-coupon-toggle');
-    const miniCouponPanel = document.getElementById('mini-coupon-panel');
-    
-    if (miniToggleButton && miniCouponPanel) {
-        miniToggleButton.addEventListener('click', function() {
-            miniCouponPanel.classList.toggle('visible');
-        });
+        }
         
-        // Close panel when clicking outside
-        document.addEventListener('click', function(event) {
-            if (!miniCouponPanel.contains(event.target) && event.target !== miniToggleButton) {
-                miniCouponPanel.classList.remove('visible');
+        // Close modal when clicking the close button
+        if (closeBtn) {
+            closeBtn.addEventListener('click', function() {
+                modal.style.display = 'none';
+            });
+        }
+        
+        // Close modal when clicking outside
+        window.addEventListener('click', function(event) {
+            if (event.target === modal) {
+                modal.style.display = 'none';
             }
         });
         
-        // Mini coupon copy functionality
-        const miniCopyButtons = document.querySelectorAll('.mini-copy-btn');
+        // Safe initialization of circle progress with error handling
+        function safeInitCircleProgress() {
+            try {
+                var progressCircle = document.querySelector('.wc-loyalty-progress-circle');
+                if (!progressCircle) return;
+                
+                var progress = progressCircle.getAttribute('data-progress');
+                
+                // Only use circleProgress if jQuery and the plugin are properly loaded
+                if ($ && $.fn && typeof $.fn.circleProgress === 'function') {
+                    $(progressCircle).circleProgress({
+                        value: progress / 100,
+                        size: 180,
+                        thickness: 15,
+                        fill: {
+                            gradient: ["#7952b3", "#fd7e14"]
+                        },
+                        emptyFill: "#f0f0f0",
+                        animation: {
+                            duration: 1200
+                        },
+                        lineCap: 'round'
+                    });
+                    
+                    // Make sure the canvas doesn't block clicks
+                    $('.wc-loyalty-progress-circle canvas').css({
+                        'pointer-events': 'none',
+                        'position': 'absolute'
+                    });
+                } else {
+                    // Fallback for when circleProgress isn't available
+                    console.log('Circle progress plugin not available, using fallback');
+                    createSimpleProgressBar(progressCircle, progress);
+                }
+            } catch (e) {
+                console.error('Error initializing circle progress:', e);
+                
+                // Find the progress circle again in case of scope issues
+                var progressCircle = document.querySelector('.wc-loyalty-progress-circle');
+                if (progressCircle) {
+                    createSimpleProgressBar(progressCircle, progressCircle.getAttribute('data-progress') || 0);
+                }
+            }
+        }
         
-        miniCopyButtons.forEach(button => {
-            button.addEventListener('click', function(e) {
-                e.stopPropagation();
-                
-                const code = this.getAttribute('data-code');
-                const originalText = this.textContent;
-                
-                // Copy to clipboard
-                copyToClipboard(code);
-                
-                // Update button appearance
-                this.textContent = '✓';
-                this.classList.add('copied');
-                
-                // Reset after delay
-                setTimeout(() => {
-                    this.textContent = originalText;
-                    this.classList.remove('copied');
-                }, 2000);
+        // Simple alternative progress display
+        function createSimpleProgressBar(container, percentage) {
+            // Clear any existing content
+            container.innerHTML = '';
+            
+            // Get the points count element or create it
+            var pointsCount = container.querySelector('.wc-loyalty-points-count');
+            if (!pointsCount) {
+                pointsCount = document.createElement('div');
+                pointsCount.className = 'wc-loyalty-points-count';
+                pointsCount.textContent = container.getAttribute('data-points') || '0';
+                container.appendChild(pointsCount);
+            }
+            
+            // Create simple progress bar
+            var barContainer = document.createElement('div');
+            barContainer.style.width = '100%';
+            barContainer.style.height = '10px';
+            barContainer.style.backgroundColor = '#f0f0f0';
+            barContainer.style.borderRadius = '5px';
+            barContainer.style.marginTop = '10px';
+            barContainer.style.overflow = 'hidden';
+            barContainer.style.position = 'absolute';
+            barContainer.style.bottom = '20px';
+            barContainer.style.left = '0';
+            
+            var progressBar = document.createElement('div');
+            progressBar.style.width = percentage + '%';
+            progressBar.style.height = '100%';
+            progressBar.style.backgroundColor = '#7952b3';
+            progressBar.style.borderRadius = '5px';
+            
+            barContainer.appendChild(progressBar);
+            container.appendChild(barContainer);
+        }
+        
+        // Bind copy buttons in main modal
+        function bindMainCopyButtons() {
+            const copyButtons = document.querySelectorAll('.wc-loyalty-copy-code');
+            
+            copyButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const couponCode = this.getAttribute('data-code');
+                    const originalText = this.textContent;
+                    
+                    // Copy to clipboard
+                    copyToClipboard(couponCode);
+                    
+                    // Update button text
+                    this.textContent = 'Copied!';
+                    
+                    // Reset button text after a delay
+                    setTimeout(() => {
+                        this.textContent = originalText;
+                    }, 2000);
+                });
             });
-        });
-    }
-    
-    // Helper function for copying to clipboard
-    function copyToClipboard(text) {
-        // Create a temporary textarea element
-        const textarea = document.createElement('textarea');
-        textarea.value = text;
-        textarea.style.position = 'absolute';
-        textarea.style.left = '-9999px';
-        document.body.appendChild(textarea);
+        }
         
-        // Select and copy text
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-    }
+        // Mini coupon panel toggle
+        const miniToggleButton = document.getElementById('mini-coupon-toggle');
+        const miniCouponPanel = document.getElementById('mini-coupon-panel');
+        
+        if (miniToggleButton && miniCouponPanel) {
+            miniToggleButton.addEventListener('click', function() {
+                miniCouponPanel.classList.toggle('visible');
+            });
+            
+            // Close panel when clicking outside
+            document.addEventListener('click', function(event) {
+                if (!miniCouponPanel.contains(event.target) && event.target !== miniToggleButton) {
+                    miniCouponPanel.classList.remove('visible');
+                }
+            });
+            
+            // Mini coupon copy functionality
+            const miniCopyButtons = document.querySelectorAll('.mini-copy-btn');
+            
+            miniCopyButtons.forEach(button => {
+                button.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    
+                    const code = this.getAttribute('data-code');
+                    const originalText = this.textContent;
+                    
+                    // Copy to clipboard
+                    copyToClipboard(code);
+                    
+                    // Update button appearance
+                    this.textContent = '✓';
+                    this.classList.add('copied');
+                    
+                    // Reset after delay
+                    setTimeout(() => {
+                        this.textContent = originalText;
+                        this.classList.remove('copied');
+                    }, 2000);
+                });
+            });
+        }
+        
+        // Helper function for copying to clipboard
+        function copyToClipboard(text) {
+            // Create a temporary textarea element
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'absolute';
+            textarea.style.left = '-9999px';
+            document.body.appendChild(textarea);
+            
+            // Select and copy text
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+        }
+    })(jQuery); // Pass jQuery to the IIFE
 });
 </script>
 

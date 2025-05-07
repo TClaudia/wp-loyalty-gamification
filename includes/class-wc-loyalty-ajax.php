@@ -1,13 +1,9 @@
 <?php
 /**
- * WC Loyalty AJAX Handler
- *
- * Handles AJAX requests for the loyalty program.
+
+ * Debug function to log AJAX and coupon application issues
  */
 
-if (!defined('WPINC')) {
-    die;
-}
 
 /**
  * WC_Loyalty_Ajax Class
@@ -22,16 +18,22 @@ class WC_Loyalty_Ajax {
         add_action('wp_ajax_apply_loyalty_coupon', array($this, 'apply_loyalty_coupon'));
     }
     
-    /**
-     * AJAX handler for applying coupons directly.
-     */
- /**
- * AJAX handler for applying coupons directly.
+
+
+/**
+ * AJAX handler for applying coupons directly with improved error handling.
  */
+
 public function apply_loyalty_coupon() {
+    wc_loyalty_debug_log('Starting apply_loyalty_coupon AJAX function');
     try {
         // Verify nonce
-        check_ajax_referer('wc_loyalty_nonce', 'nonce');
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'wc_loyalty_nonce')) {
+            wp_send_json_error(array(
+                'message' => __('Security check failed.', 'wc-loyalty-gamification')
+            ));
+            return;
+        }
         
         // Check if user is logged in
         if (!is_user_logged_in()) {
@@ -53,7 +55,7 @@ public function apply_loyalty_coupon() {
         }
         
         // Check if WooCommerce is active and cart is available
-        if (!function_exists('WC') || !WC() || !WC()->cart) {
+        if (!function_exists('WC') || !WC() || !isset(WC()->cart)) {
             wp_send_json_error(array(
                 'message' => __('WooCommerce cart is not available. Please refresh the page and try again.', 'wc-loyalty-gamification')
             ));
@@ -74,14 +76,12 @@ public function apply_loyalty_coupon() {
         $user_coupons = WC_Loyalty()->rewards->get_user_coupons($user_id);
         
         if (!is_array($user_coupons)) {
-            wp_send_json_error(array(
-                'message' => __('Error retrieving your coupons. Please try again.', 'wc-loyalty-gamification')
-            ));
-            return;
+            $user_coupons = array(); // Ensure it's an array even if empty
         }
         
         foreach ($user_coupons as $coupon) {
-            if (isset($coupon['code']) && $coupon['code'] === $coupon_code && isset($coupon['is_used']) && !$coupon['is_used']) {
+            if (isset($coupon['code']) && $coupon['code'] === $coupon_code && 
+                isset($coupon['is_used']) && !$coupon['is_used']) {
                 $is_valid_coupon = true;
                 break;
             }
@@ -94,10 +94,13 @@ public function apply_loyalty_coupon() {
             return;
         }
         
-        // Apply the coupon with error checking
-        $apply_result = WC()->cart->apply_coupon($coupon_code);
+        // Clear any existing notices before we apply the coupon
+        wc_clear_notices();
         
-        // WooCommerce 3.0+ doesn't return a boolean, so check for errors instead
+        // Apply the coupon with error checking
+        $result = WC()->cart->apply_coupon($coupon_code);
+        
+        // Since WC 3.0+, we check notices to see if it worked
         $notices = wc_get_notices('error');
         
         if (empty($notices)) {
@@ -107,7 +110,9 @@ public function apply_loyalty_coupon() {
             ));
         } else {
             // Failed to apply with specific error
-            $error_message = !empty($notices) ? reset($notices)['notice'] : __('Failed to apply coupon. Please try again.', 'wc-loyalty-gamification');
+            $error_message = !empty($notices) && is_array($notices) && isset($notices[0]['notice']) ? 
+                            $notices[0]['notice'] : 
+                            __('Failed to apply coupon. Please try again.', 'wc-loyalty-gamification');
             
             wp_send_json_error(array(
                 'message' => $error_message
@@ -123,9 +128,3 @@ public function apply_loyalty_coupon() {
     }
 }
 }
-
-// The wc_loyalty_coupon_cart_description function is already defined in the main plugin file,
-// so it's not needed here. The wc_loyalty_mark_coupon_used_on_complete function is also
-// already defined in the main file.
-
-
