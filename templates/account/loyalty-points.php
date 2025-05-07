@@ -11,6 +11,7 @@
 if (!defined('ABSPATH')) {
     exit;
 }
+
 ?>
 
 <style>
@@ -385,4 +386,3 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
-</script>

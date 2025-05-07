@@ -142,35 +142,45 @@ if (is_cart() || is_checkout()) {
         include WC_LOYALTY_PLUGIN_DIR . 'templates/loyalty-interface.php';
     }
 
+/**
+ * Fixed version of the add_comment_author_badge function
+ * Replace this in your class-wc-loyalty-frontend.php file
+ */
 
-    /**
-     * Add tier badge to comment author.
-     */
-    public function add_comment_author_badge($author, $comment_id, $comment) {
-        if (!is_user_logged_in() || !$comment->user_id) {
-            return $author;
-        }
-        
-        // Safely check if WC_Loyalty components are fully initialized
-        if (!function_exists('WC_Loyalty') || !WC_Loyalty() || !WC_Loyalty()->points) {
-            return $author;
-        }
-        
-        $tier_key = WC_Loyalty()->points->get_user_tier($comment->user_id);
-        $tier_data = WC_Loyalty()->points->get_user_tier_data($comment->user_id);
-        
-        if (empty($tier_data)) {
-            return $author;
-        }
-        
-        $badge = sprintf(
-            '<span class="wc-loyalty-comment-badge" style="background-color: %s">%s</span>',
-            esc_attr($tier_data['color']),
-            esc_html($tier_data['name'])
-        );
-        
-        return $author . ' ' . $badge;
+/**
+ * Add tier badge to comment author.
+ */
+public function add_comment_author_badge($author, $comment_id, $comment) {
+    // Only add badge for logged-in users
+    if (!$comment->user_id) {
+        return $author;
     }
+    
+    // Safely check if WC_Loyalty components are fully initialized
+    if (!function_exists('WC_Loyalty') || !WC_Loyalty() || !WC_Loyalty()->points) {
+        return $author;
+    }
+    
+    $tier_key = WC_Loyalty()->points->get_user_tier($comment->user_id);
+    $tier_data = WC_Loyalty()->points->get_user_tier_data($comment->user_id);
+    
+    if (empty($tier_data)) {
+        return $author;
+    }
+    
+    // Create a badge that appears AFTER the author name without extra formatting
+    $badge = sprintf(
+        ' <span class="wc-loyalty-comment-badge" style="background-color: %s">%s</span>',
+        esc_attr($tier_data['color']),
+        esc_html($tier_data['name'])
+    );
+    
+    // Remove any existing badge first to avoid duplicates
+    $author = preg_replace('/<span class="wc-loyalty-comment-badge".*?<\/span>/', '', $author);
+    
+    // Return author name with badge, making sure we don't add extra formatting
+    return $author . $badge;
+}
 
     /**
      * Constructor.
@@ -186,6 +196,43 @@ if (is_cart() || is_checkout()) {
         add_action('wp', array($this, 'fix_botiga_conflicts'), 99);
 
         // Add comment author badge
-        add_filter('get_comment_author', array($this, 'add_comment_author_badge'), 10, 3);
+       add_filter('comment_author', array($this, 'add_comment_badge_clean'), 99, 2);
     }
+
+
+    /**
+ * New method to add badge to comment author name
+ * This uses a better hook point with fewer parameters
+ */
+public function add_comment_badge_clean($author, $comment_id) {
+    // Get the comment object
+    $comment = get_comment($comment_id);
+    
+    // Only add badge for logged-in users with a user_id
+    if (!$comment || !$comment->user_id) {
+        return $author;
+    }
+    
+    // Safely check if WC_Loyalty components are initialized
+    if (!function_exists('WC_Loyalty') || !WC_Loyalty() || !WC_Loyalty()->points) {
+        return $author;
+    }
+    
+    $tier_key = WC_Loyalty()->points->get_user_tier($comment->user_id);
+    $tier_data = WC_Loyalty()->points->get_user_tier_data($comment->user_id);
+    
+    if (empty($tier_data)) {
+        return $author;
+    }
+    
+    // Create a clean badge with appropriate spacing
+    $badge = sprintf(
+        ' <span class="wc-loyalty-comment-badge" style="display:inline-block; margin-left:5px; padding:2px 6px; border-radius:3px; font-size:11px; background-color:%s; color:#fff;">%s</span>',
+        esc_attr($tier_data['color']),
+        esc_html($tier_data['name'])
+    );
+    
+    // Return a clean version with just the author name and badge
+    return wp_kses_post($author) . $badge;
+}
 }
