@@ -1,365 +1,572 @@
 /**
- * WooCommerce Loyalty Gamification - Admin Styles
+ * Stiluri CSS îmbunătățite pentru Panoul de Administrare - WooCommerce Loyalty
  */
 
-/* Variables */
-:root {
- --loyalty-primary: #7952b3;
- --loyalty-primary-dark: #5e3d8f;
- --loyalty-primary-light: #9c74d5;
- --loyalty-secondary: #fd7e14;
- --loyalty-secondary-dark: #c85e02;
- --loyalty-success: #28a745;
- --loyalty-info: #17a2b8;
- --loyalty-warning: #ffc107;
- --loyalty-danger: #dc3545;
- --loyalty-light: #f8f9fa;
- --loyalty-dark: #343a40;
- --loyalty-white: #ffffff;
-
- --loyalty-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
- --loyalty-shadow-hover: 0 3px 8px rgba(0, 0, 0, 0.15);
- --loyalty-transition: all 0.3s ease;
- --loyalty-border-radius: 4px;
-}
-
-/* Settings Page Styles */
+/* Stiluri generale pentru pagina de setări */
 .wc-loyalty-settings-page {
- margin: 20px 0;
+  margin: 20px 0;
+  max-width: 1200px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
 }
 
 .wc-loyalty-settings-page h1 {
- color: var(--loyalty-primary-dark);
- font-size: 24px;
- margin-bottom: 30px;
- padding-bottom: 15px;
- border-bottom: 2px solid var(--loyalty-primary-light);
+  color: #23282d;
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #7952b3;
 }
 
-.wc-loyalty-settings-page .nav-tab-wrapper {
- margin-bottom: 20px;
+/* Stiluri pentru tab-uri */
+.wc-loyalty-settings-tabs {
+  margin-bottom: 20px;
+  border-bottom: 1px solid #ccc;
+  display: flex;
+  flex-wrap: wrap;
 }
 
-.wc-loyalty-settings-page .nav-tab {
- background-color: var(--loyalty-white);
- border-color: #ddd;
- color: #666;
- font-weight: 500;
+.wc-loyalty-settings-tabs .nav-tab {
+  background-color: #f8f9fa;
+  border: 1px solid #ccc;
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+  color: #555;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 10px 15px;
+  margin-right: 5px;
+  margin-bottom: -1px;
+  text-decoration: none;
+  transition: all 0.2s ease;
 }
 
-.wc-loyalty-settings-page .nav-tab:hover {
- background-color: #f8f9fa;
- color: var(--loyalty-primary);
+.wc-loyalty-settings-tabs .nav-tab:hover {
+  background-color: #fff;
+  color: #7952b3;
 }
 
-.wc-loyalty-settings-page .nav-tab-active,
-.wc-loyalty-settings-page .nav-tab-active:hover {
- background-color: var(--loyalty-primary);
- border-color: var(--loyalty-primary);
- color: var(--loyalty-white);
+.wc-loyalty-settings-tabs .nav-tab-active,
+.wc-loyalty-settings-tabs .nav-tab-active:hover {
+  background-color: #fff;
+  border-bottom: 1px solid #fff;
+  color: #7952b3;
+  font-weight: 600;
 }
 
+/* Container pentru tab-uri */
+.wc-loyalty-tab-content {
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-top: none;
+  padding: 20px;
+  margin-top: -1px;
+  border-radius: 0 0 4px 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Stiluri pentru tabele și formulare */
 .wc-loyalty-settings-page .form-table {
- background-color: var(--loyalty-white);
- border-radius: var(--loyalty-border-radius);
- box-shadow: var(--loyalty-shadow);
- margin-bottom: 30px;
+  border-collapse: collapse;
+  margin-top: 0;
+  width: 100%;
 }
 
 .wc-loyalty-settings-page .form-table th {
- padding: 20px;
- font-weight: 600;
+  font-weight: 600;
+  padding: 18px 10px 18px 0;
+  text-align: left;
+  width: 200px;
+  vertical-align: top;
+  color: #23282d;
 }
 
 .wc-loyalty-settings-page .form-table td {
- padding: 20px;
+  padding: 15px 10px;
+  vertical-align: top;
 }
 
 .wc-loyalty-settings-page input[type="text"],
 .wc-loyalty-settings-page input[type="number"],
-.wc-loyalty-settings-page select {
- padding: 8px 12px;
- border-radius: var(--loyalty-border-radius);
- border: 1px solid #ddd;
- min-width: 250px;
+.wc-loyalty-settings-page select,
+.wc-loyalty-settings-page textarea {
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+  color: #32373c;
+  padding: 6px 10px;
+  width: 100%;
+  max-width: 400px;
+  min-height: 34px;
 }
 
-.wc-loyalty-settings-page input[type="number"] {
- width: 100px;
+.wc-loyalty-settings-page input[type="text"]:focus,
+.wc-loyalty-settings-page input[type="number"]:focus,
+.wc-loyalty-settings-page select:focus,
+.wc-loyalty-settings-page textarea:focus {
+  border-color: #7952b3;
+  box-shadow: 0 0 0 1px #7952b3;
+  outline: 2px solid transparent;
 }
 
 .wc-loyalty-settings-page .description {
- color: #666;
- font-style: italic;
- margin-top: 5px;
+  color: #666;
+  font-size: 13px;
+  font-style: italic;
+  margin-top: 5px;
 }
 
-/* Reward Tiers */
+/* Butoane */
+.wc-loyalty-settings-page .button {
+  background-color: #f8f9fa;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  color: #555;
+  cursor: pointer;
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 500;
+  height: auto;
+  line-height: normal;
+  padding: 6px 12px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.wc-loyalty-settings-page .button:hover {
+  background-color: #f0f0f1;
+  border-color: #999;
+  color: #23282d;
+}
+
+.wc-loyalty-settings-page .button-primary,
+.wc-loyalty-settings-page .wc-loyalty-add-tier,
+.wc-loyalty-settings-page .wc-loyalty-add-tier-membership {
+  background-color: #7952b3 !important;
+  border-color: #6e47a5 !important;
+  color: #fff !important;
+  text-shadow: none;
+}
+
+.wc-loyalty-settings-page .button-primary:hover,
+.wc-loyalty-settings-page .wc-loyalty-add-tier:hover,
+.wc-loyalty-settings-page .wc-loyalty-add-tier-membership:hover {
+  background-color: #6e47a5 !important;
+  border-color: #5e3d8f !important;
+  color: #fff !important;
+}
+
+.wc-loyalty-settings-page .wc-loyalty-remove-tier,
+.wc-loyalty-settings-page .wc-loyalty-remove-milestone {
+  background-color: #dc3545 !important;
+  border-color: #c82333 !important;
+  color: #fff !important;
+}
+
+.wc-loyalty-settings-page .wc-loyalty-remove-tier:hover,
+.wc-loyalty-settings-page .wc-loyalty-remove-milestone:hover {
+  background-color: #c82333 !important;
+  border-color: #bd2130 !important;
+  color: #fff !important;
+}
+
+/* Niveluri de Recompensă */
 .wc-loyalty-reward-tiers {
- margin-bottom: 20px;
+  margin-bottom: 20px;
 }
 
 .wc-loyalty-reward-tier {
- display: flex;
- align-items: center;
- margin-bottom: 10px;
- background-color: var(--loyalty-light);
- padding: 15px;
- border-radius: var(--loyalty-border-radius);
- box-shadow: var(--loyalty-shadow);
- transition: var(--loyalty-transition);
-}
-
-.wc-loyalty-reward-tier:hover {
- box-shadow: var(--loyalty-shadow-hover);
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  display: grid;
+  grid-template-columns: 120px 150px 120px 1fr;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding: 15px;
+  align-items: center;
 }
 
 .wc-loyalty-reward-tier input,
 .wc-loyalty-reward-tier select {
- margin-right: 10px;
-}
-
-.wc-loyalty-reward-tier-points {
- min-width: 100px;
-}
-
-.wc-loyalty-reward-tier-type {
- min-width: 150px;
-}
-
-.wc-loyalty-reward-tier-value {
- min-width: 100px;
+  margin: 0;
 }
 
 .wc-loyalty-reward-tier-actions {
- margin-left: 10px;
-}
-
-.wc-loyalty-add-tier {
- margin-top: 10px !important;
- background-color: var(--loyalty-primary) !important;
- border-color: var(--loyalty-primary-dark) !important;
- color: var(--loyalty-white) !important;
- padding: 5px 15px !important;
- font-weight: 500 !important;
-}
-
-.wc-loyalty-add-tier:hover {
- background-color: var(--loyalty-primary-dark) !important;
- border-color: var(--loyalty-primary-dark) !important;
-}
-
-.wc-loyalty-remove-tier {
- background-color: var(--loyalty-danger) !important;
- border-color: var(--loyalty-danger) !important;
- color: var(--loyalty-white) !important;
-}
-
-.wc-loyalty-remove-tier:hover {
- background-color: #c82333 !important;
- border-color: #bd2130 !important;
-}
-
-/* Free Products Section */
-.wc-loyalty-free-products {
- background-color: var(--loyalty-white);
- border-radius: var(--loyalty-border-radius);
- box-shadow: var(--loyalty-shadow);
- padding: 20px;
- margin-top: 40px;
-}
-
-.wc-loyalty-free-products h2 {
- color: var(--loyalty-primary-dark);
- font-size: 20px;
- margin-top: 0;
- margin-bottom: 20px;
-}
-
-.wc-loyalty-free-products p {
- margin-bottom: 20px;
-}
-
-.wc-loyalty-free-products table {
- border-collapse: collapse;
- width: 100%;
- margin-bottom: 30px;
-}
-
-.wc-loyalty-free-products th {
- background-color: var(--loyalty-primary-light);
- color: var(--loyalty-white);
- padding: 10px 15px;
- text-align: left;
-}
-
-.wc-loyalty-free-products td {
- padding: 10px 15px;
- border-bottom: 1px solid #eee;
-}
-
-.wc-loyalty-free-products tr:last-child td {
- border-bottom: none;
-}
-
-.wc-loyalty-free-products tr:nth-child(even) {
- background-color: #f8f9fa;
-}
-
-.wc-loyalty-free-products .wc-loyalty-product-actions {
- text-align: right;
-}
-
-.wc-loyalty-free-products .button-secondary {
- background-color: var(--loyalty-white);
- color: var(--loyalty-danger);
- border-color: var(--loyalty-danger);
-}
-
-.wc-loyalty-free-products .button-secondary:hover {
- background-color: var(--loyalty-danger);
- color: var(--loyalty-white);
-}
-
-.wc-loyalty-add-product-form {
- background-color: #f8f9fa;
- padding: 20px;
- border-radius: var(--loyalty-border-radius);
-}
-
-.wc-loyalty-add-product-form h3 {
- margin-top: 0;
- color: var(--loyalty-dark);
- font-size: 16px;
- margin-bottom: 15px;
-}
-
-.wc-loyalty-add-product-form .select2-container {
- min-width: 400px;
-}
-
-.wc-loyalty-add-product-form .button-primary {
- background-color: var(--loyalty-primary);
- border-color: var(--loyalty-primary-dark);
- margin-left: 10px;
-}
-
-.wc-loyalty-add-product-form .button-primary:hover {
- background-color: var(--loyalty-primary-dark);
- border-color: var(--loyalty-primary-dark);
-}
-
-/* Responsive Styles */
-@media screen and (max-width: 782px) {
- .wc-loyalty-settings-page .form-table th {
-  padding: 15px;
- }
-
- .wc-loyalty-settings-page .form-table td {
-  padding: 15px;
- }
-
- .wc-loyalty-settings-page input[type="text"],
- .wc-loyalty-settings-page input[type="number"],
- .wc-loyalty-settings-page select {
-  min-width: auto;
- }
-
- .wc-loyalty-reward-tier {
-  flex-wrap: wrap;
- }
-
- .wc-loyalty-reward-tier input,
- .wc-loyalty-reward-tier select {
-  margin-bottom: 10px;
- }
-
- .wc-loyalty-reward-tier-actions {
-  width: 100%;
   text-align: right;
-  margin-top: 10px;
-  margin-left: 0;
- }
+}
 
- .wc-loyalty-add-product-form .select2-container {
-  min-width: 250px;
- }
-  /* Membership Tiers */
-  .wc-loyalty-tiers {
-   margin-bottom: 20px;
+/* Premiul Premium */
+.wc-loyalty-premium-tier {
+  background-color: #fff8e6;
+  border: 1px solid #ffc107;
+  border-left: 4px solid #ffc107;
+  border-radius: 4px;
+  margin: 20px 0;
+  padding: 15px;
+}
+
+.wc-loyalty-premium-tier h3 {
+  color: #856404;
+  font-size: 16px;
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+/* Niveluri de Membru */
+.wc-loyalty-tiers {
+  margin-bottom: 20px;
+}
+
+.wc-loyalty-tier {
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-bottom: 15px;
+  padding: 15px;
+}
+
+.wc-loyalty-tier-header {
+  display: grid;
+  grid-template-columns: 40px 120px 150px 120px 120px 1fr;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.wc-loyalty-tier-color-preview {
+  height: 30px;
+  width: 30px;
+  border-radius: 50%;
+  border: 1px solid #ddd;
+}
+
+.wc-loyalty-tier-perks-entry {
+  margin-top: 10px;
+}
+
+.wc-loyalty-tier-perks-text {
+  min-height: 80px;
+  width: 100%;
+}
+
+/* Recompense pentru Milestone */
+.wc-loyalty-milestone-rewards {
+  margin-bottom: 20px;
+}
+
+.wc-loyalty-milestone-reward {
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  display: grid;
+  grid-template-columns: 120px 120px 1fr;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding: 15px;
+  align-items: center;
+}
+
+/* Layout pentru obiective multiple */
+.wc-loyalty-milestone-objectives {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 15px;
+  margin-top: 15px;
+}
+
+.wc-loyalty-milestone-objective {
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 15px;
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 10px;
+  align-items: center;
+}
+
+/* Card pentru setări configurabile */
+.wc-loyalty-config-card {
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.wc-loyalty-config-card h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: #23282d;
+  font-size: 16px;
+  border-bottom: 1px solid #f0f0f0;
+  padding-bottom: 10px;
+}
+
+/* Grid pentru obiective */
+.wc-loyalty-objective-grid {
+  display: grid;
+  grid-template-columns: 80px 120px auto;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid #f0f0f0;
+  border-radius: 4px;
+  padding: 10px;
+  margin-bottom: 10px;
+}
+
+.wc-loyalty-objective-grid:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+/* Mesaje de notificare */
+.wc-loyalty-notice {
+  background-color: #f8f9fa;
+  border-left: 4px solid #7952b3;
+  padding: 12px 15px;
+  margin: 15px 0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.wc-loyalty-notice.success {
+  border-left-color: #28a745;
+}
+
+.wc-loyalty-notice.warning {
+  border-left-color: #ffc107;
+}
+
+.wc-loyalty-notice.error {
+  border-left-color: #dc3545;
+}
+
+/* Modificări responsive */
+@media screen and (max-width: 782px) {
+
+  .wc-loyalty-reward-tier,
+  .wc-loyalty-tier-header,
+  .wc-loyalty-milestone-reward {
+    grid-template-columns: 1fr;
+    gap: 15px;
   }
- 
-  .wc-loyalty-tier {
-   margin-bottom: 15px;
-   background-color: var(--loyalty-light);
-   padding: 15px;
-   border-radius: var(--loyalty-border-radius);
-   box-shadow: var(--loyalty-shadow);
-   transition: var(--loyalty-transition);
-  }
- 
-  .wc-loyalty-tier:hover {
-   box-shadow: var(--loyalty-shadow-hover);
-  }
- 
-  .wc-loyalty-tier-header {
-   display: flex;
-   align-items: center;
-   margin-bottom: 10px;
-  }
- 
-  .wc-loyalty-tier-color-preview {
-   width: 25px;
-   height: 25px;
-   border-radius: 50%;
-   margin-right: 10px;
-   border: 1px solid #ddd;
-  }
- 
-  .wc-loyalty-tier-key {
-   width: 120px;
-   margin-right: 10px;
-  }
- 
-  .wc-loyalty-tier-name {
-   width: 150px;
-   margin-right: 10px;
-  }
- 
-  .wc-loyalty-tier-min-points {
-   width: 100px;
-   margin-right: 10px;
-  }
- 
-  .wc-loyalty-tier-color {
-   width: 100px;
-   margin-right: 10px;
-  }
- 
+
   .wc-loyalty-tier-actions {
-   margin-left: auto;
+    text-align: left;
   }
- 
-  .wc-loyalty-tier-perks-entry {
-   margin-top: 10px;
+
+  .wc-loyalty-settings-page .form-table th {
+    width: auto;
+    display: block;
+    padding-bottom: 0;
   }
- 
-  .wc-loyalty-tier-perks-text {
-   width: 100%;
-   min-height: 60px;
+
+  .wc-loyalty-settings-page .form-table td {
+    padding-top: 0;
+    padding-bottom: 15px;
+    display: block;
   }
- 
-  #wc-loyalty-add-tier-membership {
-   margin-top: 10px !important;
-   background-color: var(--loyalty-primary) !important;
-   border-color: var(--loyalty-primary-dark) !important;
-   color: var(--loyalty-white) !important;
-   padding: 5px 15px !important;
-   font-weight: 500 !important;
+}
+
+/* Indicator de progres și stare */
+.wc-loyalty-status {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.wc-loyalty-status.active {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.wc-loyalty-status.inactive {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+/* Layout pe două coloane la setările generale */
+.wc-loyalty-settings-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+@media screen and (max-width: 960px) {
+  .wc-loyalty-settings-columns {
+    grid-template-columns: 1fr;
   }
- 
-  #wc-loyalty-add-tier-membership:hover {
-   background-color: var(--loyalty-primary-dark) !important;
-   border-color: var(--loyalty-primary-dark) !important;
-  }
+}
+
+/* Tooltip pentru informații suplimentare */
+.wc-loyalty-tooltip {
+  display: inline-block;
+  position: relative;
+  color: #666;
+  cursor: help;
+  margin-left: 5px;
+}
+
+.wc-loyalty-tooltip:before {
+  content: "?";
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  line-height: 16px;
+  text-align: center;
+  background-color: #7952b3;
+  color: white;
+  border-radius: 50%;
+  font-size: 12px;
+}
+
+.wc-loyalty-tooltip .tooltip-content {
+  position: absolute;
+  bottom: 24px;
+  right: -10px;
+  width: 200px;
+  background-color: #23282d;
+  color: white;
+  padding: 8px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1.4;
+  z-index: 10;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.2s ease;
+}
+
+.wc-loyalty-tooltip:hover .tooltip-content {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.wc-loyalty-tooltip .tooltip-content:before {
+  content: "";
+  position: absolute;
+  bottom: -6px;
+  right: 15px;
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid #23282d;
+}
+
+/* Îmbunătățiri speciale pentru tabelele de forma */
+.wc-loyalty-form-grid {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 15px;
+  align-items: start;
+  margin-bottom: 15px;
+}
+
+.wc-loyalty-form-grid label {
+  font-weight: 600;
+  padding-top: 7px;
+}
+
+.wc-loyalty-form-grid .description {
+  grid-column: 2;
+  margin-top: 5px;
+}
+
+/* Card header cu acțiuni */
+.wc-loyalty-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.wc-loyalty-card-header h3 {
+  margin: 0;
+}
+
+/* PayPal promo styling */
+.wc-loyalty-paypal-promo {
+  background-color: #f5f9ff;
+  border: 1px solid #4285f4;
+  border-radius: 4px;
+  padding: 12px 15px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+}
+
+.wc-loyalty-paypal-promo img {
+  margin-right: 10px;
+  height: 24px;
+}
+
+/* Style pentru programator actualizări */
+.wc-loyalty-update-scheduler {
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 15px;
+  margin-bottom: 20px;
+}
+
+.wc-loyalty-update-scheduler h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-size: 16px;
+}
+
+.wc-loyalty-update-scheduler .scheduler-grid {
+  display: grid;
+  grid-template-columns: 120px 120px 1fr;
+  gap: 10px;
+  align-items: center;
+}
+
+/* Adaptive width for form fields based on content */
+.wc-loyalty-input-sm {
+  max-width: 100px !important;
+}
+
+.wc-loyalty-input-md {
+  max-width: 200px !important;
+}
+
+.wc-loyalty-input-lg {
+  max-width: 300px !important;
+}
+
+/* Table styling */
+.wc-loyalty-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+
+.wc-loyalty-data-table th {
+  background-color: #f8f9fa;
+  border-bottom: 2px solid #ddd;
+  padding: 10px;
+  text-align: left;
+  font-weight: 600;
+}
+
+.wc-loyalty-data-table td {
+  border-bottom: 1px solid #f0f0f0;
+  padding: 10px;
+}
+
+.wc-loyalty-data-table tr:hover {
+  background-color: #f9f9f9;
+}
+
+.wc-loyalty-data-table .action-cell {
+  text-align: right;
+  white-space: nowrap;
 }
