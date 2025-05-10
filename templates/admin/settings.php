@@ -47,6 +47,8 @@ defined('ABSPATH') || exit;
         <a href="#reward-tiers" class="nav-tab"><?php esc_html_e('Niveluri de Recompensă', 'wc-loyalty-gamification'); ?></a>
         <a href="#membership-tiers" class="nav-tab"><?php esc_html_e('Niveluri de Membru', 'wc-loyalty-gamification'); ?></a>
         <a href="#checkin-settings" class="nav-tab"><?php esc_html_e('Sistem de Verificare', 'wc-loyalty-gamification'); ?></a>
+
+        <a href="#email-settings" class="nav-tab"><?php esc_html_e('Email Reminders', 'wc-loyalty-gamification'); ?></a>
     </div>
     
     <form method="post" action="options.php" id="wc-loyalty-settings-form">
@@ -279,4 +281,18 @@ defined('ABSPATH') || exit;
             </div>
         </div>
     </div>
+
+
+<!-- Email Settings Tab -->
+<div id="email-settings" class="wc-loyalty-tab-content" style="display: none;">
+    <?php if (function_exists('WC_Loyalty') && isset(WC_Loyalty()->email_reminder)): ?>
+        <?php WC_Loyalty()->email_reminder->display_email_settings(); ?>
+    <?php else: ?>
+        <div class="wc-loyalty-notice warning">
+            <?php esc_html_e('Componenta de email nu este disponibilă. Verificați instalarea plugin-ului.', 'wc-loyalty-gamification'); ?>
+        </div>
+    <?php endif; ?>
+    
+    <?php submit_button(); ?>
+</div>
 </div>

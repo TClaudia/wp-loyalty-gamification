@@ -298,7 +298,36 @@ function wc_loyalty_translate_strings($translated_text, $text, $domain) {
         'Transport Gratuit' => 'Transport Gratuit',
         'Free Shipping' => 'Transport Gratuit',
         'Istoricul Punctelor' => 'Istoricul Punctelor',
-        'Recompense Revendicate' => 'Recompense Revendicate'
+        'Recompense Revendicate' => 'Recompense Revendicate',
+        // Email-uri zilnice
+'Don\'t forget your daily loyalty points!' => 'Nu uita de punctele tale zilnice!',
+'Daily Points Reminder' => 'Reamintire Puncte Zilnice',
+'Hello %s,' => 'Salut %s,',
+'Don\'t forget to visit %s today to claim your daily loyalty points!' => 'Nu uita să vizitezi %s astăzi pentru a-ți revendica punctele de fidelitate zilnice!',
+'Today you can earn:' => 'Astăzi poți câștiga:',
+'Current streak: Day %d' => 'Serie curentă: Ziua %d',
+'You currently have a total of %d points in our loyalty program.' => 'În prezent ai un total de %d puncte în programul nostru de fidelitate.',
+'Visit Site to Claim Points' => 'Vizitează Site-ul Pentru a Revendica',
+'Log in to your account and check in daily to keep building your points and unlock exclusive rewards!' => 'Autentifică-te în contul tău și verifică zilnic pentru a acumula puncte și a debloca recompense exclusive!',
+'Test email sent successfully!' => 'Email de test trimis cu succes!',
+'Failed to send test email' => 'Trimiterea email-ului de test a eșuat',
+'Sending...' => 'Se trimite...',
+'Email Reminders' => 'Reamintiri prin Email',
+'Email Reminder Settings' => 'Setări Reamintiri prin Email',
+'Enable Daily Emails' => 'Activează Email-uri Zilnice',
+'Enable or disable daily reminder emails' => 'Activează sau dezactivează email-urile zilnice de reamintire',
+'From Name' => 'Numele Expeditorului',
+'From Email' => 'Email-ul Expeditorului',
+'Send Time' => 'Ora de Trimitere',
+'Time of day to send the reminder emails (server time)' => 'Ora din zi pentru trimiterea email-urilor de reamintire (ora serverului)',
+'Email Subject' => 'Subiectul Email-ului',
+'Email Template' => 'Șablonul Email-ului',
+'Available variables:' => 'Variabile disponibile:',
+'Send Test Email' => 'Trimite Email de Test',
+'Yes' => 'Da',
+'No' => 'Nu',
+'Tip:' => 'Sfat:',
+'Check in daily to keep your streak going and earn bonus points!' => 'Verifică zilnic pentru a-ți menține seria și a primi puncte bonus!'
     );
 
     // Verifică dacă textul există în lista noastră de traduceri

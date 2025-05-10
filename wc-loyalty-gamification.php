@@ -249,6 +249,10 @@ function wc_loyalty_activate() {
     // Force update templates to make sure they are in the right format
     require_once WC_LOYALTY_PLUGIN_DIR . 'includes/fix-loyalty-templates.php';
     wc_loyalty_force_update_templates();
+
+    // Adaugă clasa de email reminder
+require_once WC_LOYALTY_PLUGIN_DIR . 'includes/class-wc-loyalty-email-reminder.php';
+$this->email_reminder = new WC_Loyalty_Email_Reminder();
 }
 
 // Register deactivation hook
@@ -361,6 +365,13 @@ class WC_Loyalty_Gamification {
     protected static $instance = null;
 
     /**
+ * Email reminder instance.
+ *
+ * @var WC_Loyalty_Email_Reminder
+ */
+public $email_reminder;
+
+    /**
      * Main WC_Loyalty_Gamification Instance.
      *
      * Ensures only one instance of WC_Loyalty_Gamification is loaded or can be loaded.
@@ -439,7 +450,8 @@ public function init_components() {
         'includes/class-wc-loyalty-account.php' => 'WC_Loyalty_Account',
         'includes/class-wc-loyalty-ajax.php' => 'WC_Loyalty_Ajax',
         'includes/class-wc-loyalty-cart.php' => 'WC_Loyalty_Cart',
-        'includes/class-wc-loyalty-daily.php' => 'WC_Loyalty_Daily'
+        'includes/class-wc-loyalty-daily.php' => 'WC_Loyalty_Daily',
+        'includes/class-wc-loyalty-email-reminder.php' => 'WC_Loyalty_Email_Reminder',
     ];
     
     // Initialize components only if the file exists
@@ -456,6 +468,12 @@ public function init_components() {
         } else {
             error_log("Required file not found: $full_path");
         }
+    }
+
+     $email_reminder_file = WC_LOYALTY_PLUGIN_DIR . 'includes/class-wc-loyalty-email-reminder.php';
+    if (file_exists($email_reminder_file)) {
+        require_once $email_reminder_file;
+        $this->email_reminder = new WC_Loyalty_Email_Reminder();
     }
     
     // Initialize check-in system if file exists

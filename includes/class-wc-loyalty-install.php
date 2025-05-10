@@ -35,6 +35,12 @@ class WC_Loyalty_Install {
             add_rewrite_endpoint('loyalty-rewards', EP_ROOT | EP_PAGES);
             flush_rewrite_rules();
         }, 20);
+
+        // Programează evenimentul cron pentru email-uri zilnice dacă nu există
+if (!wp_next_scheduled('wc_loyalty_send_daily_reminder')) {
+    // Programează trimiterea la ora 10:00 în fiecare zi
+    wp_schedule_event(strtotime('10:00:00'), 'daily', 'wc_loyalty_send_daily_reminder');
+}
     }
     
     /**
@@ -42,6 +48,8 @@ class WC_Loyalty_Install {
      */
     public static function deactivate() {
         flush_rewrite_rules();
+        // Anulează programarea evenimentului cron la dezactivare
+wp_clear_scheduled_hook('wc_loyalty_send_daily_reminder');
     }
     
     /**
