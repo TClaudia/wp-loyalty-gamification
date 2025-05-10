@@ -280,7 +280,8 @@ function wc_loyalty_init_plugin() {
         'includes/class-wc-loyalty-account.php',
         'includes/class-wc-loyalty-ajax.php',
         'includes/class-wc-loyalty-cart.php',
-        'includes/class-wc-loyalty-daily.php'
+        'includes/class-wc-loyalty-daily.php',
+        'includes/class-wc-loyalty-email-reminder.php',
     );
 
     foreach ($include_files as $file) {
@@ -289,6 +290,7 @@ function wc_loyalty_init_plugin() {
             require_once $full_path;
         }
     }
+    
 
     // Enqueue assets
     add_action('wp_enqueue_scripts', array('WC_Loyalty_Asset_Manager', 'enqueue_assets'));
