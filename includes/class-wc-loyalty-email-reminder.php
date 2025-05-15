@@ -380,108 +380,101 @@ class WC_Loyalty_Email_Reminder {
         $content = str_replace(array_keys($replacements), array_values($replacements), $content);
         return $content;
     }
-    
     /**
-     * Trimite email-uri zilnice către toți utilizatorii care nu au verificat încă
-     */
-    public function send_daily_emails() {
-        // Verifică dacă email-urile sunt activate
-        if (get_option('wc_loyalty_email_enabled', 'no') !== 'yes') {
-            return;
-        }
-        
-        // Obține toți utilizatorii înregistrați
-        $users = get_users([
-            'role__in' => ['customer', 'subscriber', 'administrator'],
-            'fields' => ['ID', 'user_email', 'display_name']
-        ]);
-        
-        // Data de astăzi
-        $today = date('Y-m-d');
-        
-        // Obține setările de email
-        $subject = get_option('wc_loyalty_email_subject', __('Don\'t forget your daily loyalty points!', 'wc-loyalty-gamification'));
-        $template = get_option('wc_loyalty_email_template', $this->get_default_template());
-        $from_name = get_option('wc_loyalty_email_from_name', get_bloginfo('name'));
-        $from_email = get_option('wc_loyalty_email_from_email', get_option('admin_email'));
-        
-        // Setarea header-elor pentru email
-        $headers = [
-            'Content-Type: text/html; charset=UTF-8',
-            'From: ' . $from_name . ' <' . $from_email . '>'
-        ];
-        
-        // Contorizare pentru email-uri trimise
-        $sent_count = 0;
-        
-        foreach ($users as $user) {
-            // Verifică dacă utilizatorul a verificat deja astăzi
-            $last_claim = get_user_meta($user->ID, '_wc_loyalty_last_daily_claim', true);
-            
-            // Trimite email doar dacă utilizatorul nu a verificat astăzi
-            if ($last_claim !== $today) {
-                // Procesează conținutul emailului pentru acest utilizator
-                $content = apply_filters('wc_loyalty_daily_email_content', $template, $user->ID);
-                
-                // Trimite email-ul
+ * Trimite email-uri zilnice către toți utilizatorii care nu au verificat încă
+ */
+
+public function send_daily_emails() {
+    if (get_option('wc_loyalty_email_enabled', 'no') !== 'yes') {
+        return;
+    }
+    $users = get_users([
+        'role__in' => ['customer', 'subscriber', 'administrator'],
+        'fields' => ['ID', 'user_email', 'display_name']
+    ]);
+    $today = date('Y-m-d');
+    $subject = get_option('wc_loyalty_email_subject', __(
+        'Don\'t forget your daily loyalty points!', 'wc-loyalty-gamification'));
+    $template = get_option('wc_loyalty_email_template', $this->get_default_template());
+    $from_name = get_option('wc_loyalty_email_from_name', get_bloginfo('name'));
+    $from_email = get_option('wc_loyalty_email_from_email', get_option('admin_email'));
+    $headers = [
+        'From: ' . $from_name . ' <' . $from_email . '>',
+        'Content-Type: text/html; charset=UTF-8'
+    ];
+    $sent_count = 0;
+    foreach ($users as $user) {
+        $last_claim = get_user_meta($user->ID, '_wc_loyalty_last_daily_claim', true);
+        if ($last_claim !== $today) {
+            $content = apply_filters('wc_loyalty_daily_email_content', $template, $user->ID);
+            if (function_exists('wc_loyalty_send_email')) {
+                $success = wc_loyalty_send_email($user->user_email, $subject, $content, $headers);
+            } else {
                 $success = wp_mail($user->user_email, $subject, $content, $headers);
-                
-                if ($success) {
-                    $sent_count++;
-                }
-                
-                // Pauză mică pentru a evita supraîncărcarea serverului
-                usleep(100000); // 0.1 secunde
             }
+            if ($success) {
+                $sent_count++;
+            }
+            usleep(100000); 
         }
-        
-        // Log pentru verificarea funcționării
-        error_log(sprintf(
-            'WC Loyalty Email Reminder: Sent %d emails on %s',
-            $sent_count,
-            date('Y-m-d H:i:s')
-        ));
     }
     
+    // Log pentru verificarea funcționării
+    error_log(sprintf(
+        'WC Loyalty Email Reminder: Sent %d emails on %s',
+        $sent_count,
+        date('Y-m-d H:i:s')
+    ));
+}
+    
     /**
-     * Trimite un email de test către administrator
-     */
-    public function send_test_email() {
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error(['message' => __('Permission denied', 'wc-loyalty-gamification')]);
-            return;
-        }
-        
-        check_ajax_referer('wc_loyalty_test_email', 'nonce');
-        
-        $user_id = get_current_user_id();
-        $user = wp_get_current_user();
-        
-        // Obține setările de email
-        $subject = get_option('wc_loyalty_email_subject', __('Don\'t forget your daily loyalty points!', 'wc-loyalty-gamification'));
-        $template = get_option('wc_loyalty_email_template', $this->get_default_template());
-        $from_name = get_option('wc_loyalty_email_from_name', get_bloginfo('name'));
-        $from_email = get_option('wc_loyalty_email_from_email', get_option('admin_email'));
-        
-        // Procesează conținutul email-ului
-        $content = apply_filters('wc_loyalty_daily_email_content', $template, $user_id);
-        
-        // Setarea header-elor pentru email
-        $headers = [
-            'Content-Type: text/html; charset=UTF-8',
-            'From: ' . $from_name . ' <' . $from_email . '>'
-        ];
-        
-        // Trimite email-ul de test
+ * Trimite un email de test către administrator
+ */
+public function send_test_email() {
+    // Verificare de permisiuni
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(['message' => __('Permission denied', 'wc-loyalty-gamification')]);
+        return;
+    }
+    
+    // Verifică nonce-ul
+    if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'wc_loyalty_test_email')) {
+        wp_send_json_error(['message' => __('Security check failed.', 'wc-loyalty-gamification')]);
+        return;
+    }
+    
+    $user_id = get_current_user_id();
+    $user = wp_get_current_user();
+    
+    // Obține setările de email
+    $subject = get_option('wc_loyalty_email_subject', __('Don\'t forget your daily loyalty points!', 'wc-loyalty-gamification'));
+    $template = get_option('wc_loyalty_email_template', $this->get_default_template());
+    $from_name = get_option('wc_loyalty_email_from_name', get_bloginfo('name'));
+    $from_email = get_option('wc_loyalty_email_from_email', get_option('admin_email'));
+    
+    // Procesează conținutul email-ului
+    $content = apply_filters('wc_loyalty_daily_email_content', $template, $user_id);
+    
+    // Setarea header-elor pentru email
+    $headers = [
+        'From: ' . $from_name . ' <' . $from_email . '>',
+        'Content-Type: text/html; charset=UTF-8'
+    ];
+    
+    // Folosește funcția îmbunătățită de trimitere email
+    if (function_exists('wc_loyalty_send_email')) {
+        $success = wc_loyalty_send_email($user->user_email, '[TEST] ' . $subject, $content, $headers);
+    } else {
+        // Fallback la wp_mail obișnuit
         $success = wp_mail($user->user_email, '[TEST] ' . $subject, $content, $headers);
-        
-        if ($success) {
-            wp_send_json_success(['message' => __('Test email sent successfully!', 'wc-loyalty-gamification')]);
-        } else {
-            wp_send_json_error(['message' => __('Failed to send test email', 'wc-loyalty-gamification')]);
-        }
+    }
+    
+    if ($success) {
+        wp_send_json_success(['message' => __('Test email sent successfully!', 'wc-loyalty-gamification')]);
+    } else {
+        wp_send_json_error(['message' => __('Failed to send test email', 'wc-loyalty-gamification')]);
     }
 }
-
+}
 // Adaugă hook pentru AJAX
 add_action('wp_ajax_wc_loyalty_send_test_email', array(new WC_Loyalty_Email_Reminder(), 'send_test_email'));

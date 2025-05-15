@@ -282,6 +282,7 @@ function wc_loyalty_init_plugin() {
         'includes/class-wc-loyalty-cart.php',
         'includes/class-wc-loyalty-daily.php',
         'includes/class-wc-loyalty-email-reminder.php',
+         'includes/email-functions.php'
     );
 
     foreach ($include_files as $file) {
