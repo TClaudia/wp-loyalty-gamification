@@ -130,93 +130,91 @@ Options -Indexes";
     /**
      * Enqueue plugin scripts and styles with proper dependencies
      */
-   /**
- * Enqueue plugin scripts and styles with proper dependencies
- */
-public static function enqueue_assets() {
-    // Only enqueue for logged-in users
-    if (!is_user_logged_in()) {
-        return;
-    }
-    
-    // Ensure jQuery is loaded
-    wp_enqueue_script('jquery');
-    
-    // Enqueue CSS
-    wp_enqueue_style(
-        'wc-loyalty-styles', 
-        WC_LOYALTY_PLUGIN_URL . 'assets/css/loyalty-style.css', 
-        array(), 
-        WC_LOYALTY_VERSION
-    );
-    
-    // Enqueue Circle Progress first (it's a dependency)
-    wp_enqueue_script(
-        'wc-circle-progress', 
-        WC_LOYALTY_PLUGIN_URL . 'assets/js/circle-progress.min.js', 
-        array('jquery'), 
-        '1.2.2', 
-        true
-    );
-
-    // Enqueue main script with proper dependencies
-    wp_enqueue_script(
-        'wc-loyalty-script', 
-        WC_LOYALTY_PLUGIN_URL . 'assets/js/loyalty-script.js', 
-        array('jquery', 'wc-circle-progress'), 
-        WC_LOYALTY_VERSION, 
-        true
-    );
-    
-    // Add cart coupon handling script
-    if (is_cart() || is_checkout()) {
+    public static function enqueue_assets() {
+        // Only enqueue for logged-in users
+        if (!is_user_logged_in()) {
+            return;
+        }
+        
+        // Ensure jQuery is loaded
+        wp_enqueue_script('jquery');
+        
+        // Enqueue CSS
+        wp_enqueue_style(
+            'wc-loyalty-styles', 
+            WC_LOYALTY_PLUGIN_URL . 'assets/css/loyalty-style.css', 
+            array(), 
+            WC_LOYALTY_VERSION
+        );
+        
+        // Enqueue Circle Progress first (it's a dependency)
         wp_enqueue_script(
-            'wc-loyalty-cart-coupon',
-            WC_LOYALTY_PLUGIN_URL . 'assets/js/cart-cupon.js',
-            array('jquery'),
+            'wc-circle-progress', 
+            WC_LOYALTY_PLUGIN_URL . 'assets/js/circle-progress.min.js', 
+            array('jquery'), 
+            '1.2.2', 
+            true
+        );
+
+        // Enqueue main script with proper dependencies
+        wp_enqueue_script(
+            'wc-loyalty-script', 
+            WC_LOYALTY_PLUGIN_URL . 'assets/js/loyalty-script.js', 
+            array('jquery', 'wc-circle-progress'), 
+            WC_LOYALTY_VERSION, 
+            true
+        );
+        
+        // Add cart coupon handling script
+        if (is_cart() || is_checkout()) {
+            wp_enqueue_script(
+                'wc-loyalty-cart-coupon',
+                WC_LOYALTY_PLUGIN_URL . 'assets/js/cart-cupon.js',
+                array('jquery'),
+                WC_LOYALTY_VERSION,
+                true
+            );
+        }
+        
+        // Enqueue daily check-in script last
+        wp_enqueue_script(
+            'wc-loyalty-daily',
+            WC_LOYALTY_PLUGIN_URL . 'assets/js/daily-checkin.js',
+            array('jquery', 'wc-circle-progress', 'wc-loyalty-script'),
             WC_LOYALTY_VERSION,
             true
         );
-    }
-    
-    // Enqueue daily check-in script last
-    wp_enqueue_script(
-        'wc-loyalty-daily',
-        WC_LOYALTY_PLUGIN_URL . 'assets/js/daily-checkin.js',
-        array('jquery', 'wc-circle-progress', 'wc-loyalty-script'),
-        WC_LOYALTY_VERSION,
-        true
-    );
-    
-    // Pass necessary data to all scripts
-    $data = array(
-        'ajaxurl' => admin_url('admin-ajax.php'),
-        'userPoints' => 0,
-        'nextTier' => null,
-        'nonce' => wp_create_nonce('wc_loyalty_nonce')
-    );
-    
-    // Add user data if available
-    if (function_exists('WC_Loyalty') && WC_Loyalty()->points) {
-        $user_id = get_current_user_id();
-        $data['userPoints'] = WC_Loyalty()->points->get_user_points($user_id);
         
-        if (WC_Loyalty()->rewards) {
-            $data['nextTier'] = WC_Loyalty()->rewards->get_next_reward_tier(
-                WC_Loyalty()->points->get_user_points($user_id)
-            );
+        // Pass necessary data to all scripts
+        $data = array(
+            'ajaxurl' => admin_url('admin-ajax.php'),
+            'userPoints' => 0,
+            'nextTier' => null,
+            'nonce' => wp_create_nonce('wc_loyalty_nonce')
+        );
+        
+        // Add user data if available
+        if (function_exists('WC_Loyalty') && WC_Loyalty()->points) {
+            $user_id = get_current_user_id();
+            $data['userPoints'] = WC_Loyalty()->points->get_user_points($user_id);
+            
+            if (WC_Loyalty()->rewards) {
+                $data['nextTier'] = WC_Loyalty()->rewards->get_next_reward_tier(
+                    WC_Loyalty()->points->get_user_points($user_id)
+                );
+            }
+        }
+        
+        // Localize data for all scripts
+        wp_localize_script('wc-loyalty-script', 'wcLoyaltyData', $data);
+        
+        // Ensure cart coupon script has the data too
+        if (is_cart() || is_checkout()) {
+            wp_localize_script('wc-loyalty-cart-coupon', 'wcLoyaltyData', $data);
         }
     }
-    
-    // Localize data for all scripts
-    wp_localize_script('wc-loyalty-script', 'wcLoyaltyData', $data);
-    
-    // Ensure cart coupon script has the data too
-    if (is_cart() || is_checkout()) {
-        wp_localize_script('wc-loyalty-cart-coupon', 'wcLoyaltyData', $data);
-    }
 }
-}
+
 /**
  * Function to manually flush rewrite rules when needed
  */
@@ -235,32 +233,59 @@ function wc_loyalty_manual_flush_rules() {
     }
 }
 
-// Register activation hook
+// Register activation hook - FIXED VERSION
 register_activation_hook(__FILE__, 'wc_loyalty_activate');
 
 function wc_loyalty_activate() {
-    // Ensure asset directories and permissions are set
-    WC_Loyalty_Asset_Manager::setup_plugin_assets();
+    try {
+        // Ensure asset directories and permissions are set
+        WC_Loyalty_Asset_Manager::setup_plugin_assets();
 
-    // Existing activation logic
-    require_once WC_LOYALTY_PLUGIN_DIR . 'includes/class-wc-loyalty-install.php';
-    WC_Loyalty_Install::activate();
-    
-    // Force update templates to make sure they are in the right format
-    require_once WC_LOYALTY_PLUGIN_DIR . 'includes/fix-loyalty-templates.php';
-    wc_loyalty_force_update_templates();
+        // Load required files for activation
+        $install_file = WC_LOYALTY_PLUGIN_DIR . 'includes/class-wc-loyalty-install.php';
+        if (file_exists($install_file)) {
+            require_once $install_file;
+            WC_Loyalty_Install::activate();
+        }
+        
+        // Force update templates to make sure they are in the right format
+        $fix_file = WC_LOYALTY_PLUGIN_DIR . 'includes/fix-loyalty-templates.php';
+        if (file_exists($fix_file)) {
+            require_once $fix_file;
+            if (function_exists('wc_loyalty_force_update_templates')) {
+                wc_loyalty_force_update_templates();
+            }
+        }
 
-    // Adaugă clasa de email reminder
-require_once WC_LOYALTY_PLUGIN_DIR . 'includes/class-wc-loyalty-email-reminder.php';
-$this->email_reminder = new WC_Loyalty_Email_Reminder();
+        // Set up cron event if class is available
+        if (!wp_next_scheduled('wc_loyalty_send_daily_reminder')) {
+            wp_schedule_event(strtotime('10:00:00'), 'daily', 'wc_loyalty_send_daily_reminder');
+        }
+        
+    } catch (Exception $e) {
+        // Log the error instead of causing a fatal error
+        error_log('WC Loyalty Activation Error: ' . $e->getMessage());
+        
+        // Add admin notice for the error
+        add_action('admin_notices', function() use ($e) {
+            ?>
+            <div class="notice notice-error">
+                <p><?php printf('WC Loyalty Activation Error: %s', esc_html($e->getMessage())); ?></p>
+            </div>
+            <?php
+        });
+    }
 }
 
 // Register deactivation hook
 register_deactivation_hook(__FILE__, 'wc_loyalty_deactivate');
 
 function wc_loyalty_deactivate() {
-    require_once WC_LOYALTY_PLUGIN_DIR . 'includes/class-wc-loyalty-install.php';
-    WC_Loyalty_Install::deactivate();
+    $install_file = WC_LOYALTY_PLUGIN_DIR . 'includes/class-wc-loyalty-install.php';
+    if (file_exists($install_file)) {
+        require_once $install_file;
+        WC_Loyalty_Install::deactivate();
+    }
 }
 
 // Modify the main plugin loading
@@ -282,7 +307,7 @@ function wc_loyalty_init_plugin() {
         'includes/class-wc-loyalty-cart.php',
         'includes/class-wc-loyalty-daily.php',
         'includes/class-wc-loyalty-email-reminder.php',
-         'includes/email-functions.php'
+        'includes/email-functions.php'
     );
 
     foreach ($include_files as $file) {
@@ -292,7 +317,6 @@ function wc_loyalty_init_plugin() {
         }
     }
     
-
     // Enqueue assets
     add_action('wp_enqueue_scripts', array('WC_Loyalty_Asset_Manager', 'enqueue_assets'));
 
@@ -361,18 +385,18 @@ class WC_Loyalty_Gamification {
     public $daily;
 
     /**
+     * Email reminder instance.
+     *
+     * @var WC_Loyalty_Email_Reminder
+     */
+    public $email_reminder;
+
+    /**
      * The single instance of the class.
      *
      * @var WC_Loyalty_Gamification
      */
     protected static $instance = null;
-
-    /**
- * Email reminder instance.
- *
- * @var WC_Loyalty_Email_Reminder
- */
-public $email_reminder;
 
     /**
      * Main WC_Loyalty_Gamification Instance.
@@ -440,54 +464,45 @@ public $email_reminder;
     /**
      * Initialize plugin components.
      */
-    /**
- * Initialize plugin components.
- */
-public function init_components() {
-    // Ensure required files exist before initializing components
-    $required_files = [
-        'includes/class-wc-loyalty-points.php' => 'WC_Loyalty_Points',
-        'includes/class-wc-loyalty-rewards.php' => 'WC_Loyalty_Rewards',
-        'includes/class-wc-loyalty-frontend.php' => 'WC_Loyalty_Frontend',
-        'includes/class-wc-loyalty-admin.php' => 'WC_Loyalty_Admin',
-        'includes/class-wc-loyalty-account.php' => 'WC_Loyalty_Account',
-        'includes/class-wc-loyalty-ajax.php' => 'WC_Loyalty_Ajax',
-        'includes/class-wc-loyalty-cart.php' => 'WC_Loyalty_Cart',
-        'includes/class-wc-loyalty-daily.php' => 'WC_Loyalty_Daily',
-        'includes/class-wc-loyalty-email-reminder.php' => 'WC_Loyalty_Email_Reminder',
-    ];
-    
-    // Initialize components only if the file exists
-    foreach ($required_files as $file => $class) {
-        $full_path = WC_LOYALTY_PLUGIN_DIR . $file;
-        if (file_exists($full_path)) {
-            require_once $full_path;
-            $property = strtolower(str_replace('WC_Loyalty_', '', $class));
-            if (class_exists($class)) {
-                $this->$property = new $class();
+    public function init_components() {
+        // Ensure required files exist before initializing components
+        $required_files = [
+            'includes/class-wc-loyalty-points.php' => 'WC_Loyalty_Points',
+            'includes/class-wc-loyalty-rewards.php' => 'WC_Loyalty_Rewards',
+            'includes/class-wc-loyalty-frontend.php' => 'WC_Loyalty_Frontend',
+            'includes/class-wc-loyalty-admin.php' => 'WC_Loyalty_Admin',
+            'includes/class-wc-loyalty-account.php' => 'WC_Loyalty_Account',
+            'includes/class-wc-loyalty-ajax.php' => 'WC_Loyalty_Ajax',
+            'includes/class-wc-loyalty-cart.php' => 'WC_Loyalty_Cart',
+            'includes/class-wc-loyalty-daily.php' => 'WC_Loyalty_Daily',
+            'includes/class-wc-loyalty-email-reminder.php' => 'WC_Loyalty_Email_Reminder',
+        ];
+        
+        // Initialize components only if the file exists
+        foreach ($required_files as $file => $class) {
+            $full_path = WC_LOYALTY_PLUGIN_DIR . $file;
+            if (file_exists($full_path)) {
+                require_once $full_path;
+                $property = strtolower(str_replace('WC_Loyalty_', '', $class));
+                if (class_exists($class)) {
+                    $this->$property = new $class();
+                } else {
+                    error_log("Class $class not found in $full_path");
+                }
             } else {
-                error_log("Class $class not found in $full_path");
+                error_log("Required file not found: $full_path");
             }
-        } else {
-            error_log("Required file not found: $full_path");
         }
-    }
 
-     $email_reminder_file = WC_LOYALTY_PLUGIN_DIR . 'includes/class-wc-loyalty-email-reminder.php';
-    if (file_exists($email_reminder_file)) {
-        require_once $email_reminder_file;
-        $this->email_reminder = new WC_Loyalty_Email_Reminder();
-    }
-    
-    // Initialize check-in system if file exists
-    $checkin_file = WC_LOYALTY_PLUGIN_DIR . 'includes/class-wc-loyalty-checkin.php';
-    if (file_exists($checkin_file)) {
-        require_once $checkin_file;
-        if (class_exists('WC_Loyalty_Checkin')) {
-            $this->checkin = new WC_Loyalty_Checkin();
+        // Initialize check-in system if file exists
+        $checkin_file = WC_LOYALTY_PLUGIN_DIR . 'includes/class-wc-loyalty-checkin.php';
+        if (file_exists($checkin_file)) {
+            require_once $checkin_file;
+            if (class_exists('WC_Loyalty_Checkin')) {
+                $this->checkin = new WC_Loyalty_Checkin();
+            }
         }
     }
-}
 }
 
 // Remove the separate function, use direct class method
@@ -585,7 +600,6 @@ function wc_loyalty_coupon_cart_description($coupon_html, $coupon, $discount_amo
 }
 
 // Mark coupon as used when order is completed
-// Mark coupon as used when order is completed
 add_action('woocommerce_order_status_completed', 'wc_loyalty_mark_coupon_used_on_complete', 10, 1);
 function wc_loyalty_mark_coupon_used_on_complete($order_id) {
     $order = wc_get_order($order_id);
@@ -620,9 +634,7 @@ function wc_loyalty_mark_coupon_used_on_complete($order_id) {
     }
 }
 
-
 add_action('woocommerce_applied_coupon', 'wc_loyalty_handle_applied_coupon');
-
 
 /**
  * Log debug information to help troubleshoot coupon issues
@@ -641,7 +653,6 @@ function wc_loyalty_debug_log($message, $data = null) {
         error_log($log_message);
     }
 }
-
 
 /**
  * Handle applied coupon through WooCommerce hooks
@@ -683,6 +694,8 @@ function wc_loyalty_handle_applied_coupon($coupon_code) {
     }
 }
 
-
 // Load translations for Romanian
-include_once(WC_LOYALTY_PLUGIN_DIR . 'wc-loyalty-translations.php');
+$translations_file = WC_LOYALTY_PLUGIN_DIR . 'wc-loyalty-translations.php';
+if (file_exists($translations_file)) {
+    include_once($translations_file);
+}

@@ -61,8 +61,8 @@ class WC_Loyalty_Account {
             unset($items['customer-logout']);
         }
         
-        $items['loyalty-points'] = __('Loyalty Points', 'wc-loyalty-gamification');
-        $items['loyalty-rewards'] = __('My Rewards', 'wc-loyalty-gamification');
+        $items['loyalty-points'] = __('Puncte de loialitate', 'wc-loyalty-gamification');
+       // $items['loyalty-rewards'] = __('My Rewards', 'wc-loyalty-gamification');
         
         if ($logout_item) {
             $items['customer-logout'] = $logout_item;
