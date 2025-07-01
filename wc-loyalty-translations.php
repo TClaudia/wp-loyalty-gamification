@@ -293,6 +293,9 @@ function wc_loyalty_get_translations() {
         'You\'ve earned free shipping on your next order!' => 'Ai câștigat transport gratuit pentru următoarea comandă!',
         'You\'ve earned a free product! See below to claim it.' => 'Ai câștigat un produs gratuit! Vezi mai jos pentru a-l revendica.',
         'No rewards available yet.' => 'Nu există recompense disponibile încă.',
+        'You have no loyalty points yet.' => 'Nu ai încă puncte de fidelitate.',
+        'You have no coupons yet.' => 'Nu ai încă cupoane.',
+        'You don\'t have any active discount coupons. Earn more points to receive discount rewards!' => 'Nu ai niciun cupon de reducere activ. Câștigă mai multe puncte pentru a primi recompense de reducere!',
         
         // Istoric și recompense
         'No points history yet.' => 'Nu există încă istoric de puncte.',

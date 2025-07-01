@@ -106,9 +106,24 @@ public function apply_loyalty_coupon() {
         ob_end_clean();
         
         if (empty($notices)) {
-            // Success - no error notices means it worked
+            // Mark the coupon as used immediately
+            $user_coupons = WC_Loyalty()->rewards->get_user_coupons($user_id);
+            $updated_coupons = array();
+            
+            foreach ($user_coupons as $coupon) {
+                if (isset($coupon['code']) && $coupon['code'] === $coupon_code) {
+                    $coupon['is_used'] = true;
+                }
+                $updated_coupons[] = $coupon;
+            }
+            
+            // Save the updated coupons
+            update_user_meta($user_id, '_wc_loyalty_coupons', $updated_coupons);
+            
+            // Success response
             wp_send_json_success(array(
                 'message' => __('Coupon successfully applied!', 'wc-loyalty-gamification'),
+                'coupon_code' => $coupon_code
             ));
         } else {
             // Failed to apply with specific error

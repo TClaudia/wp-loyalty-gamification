@@ -205,13 +205,22 @@ do_action('wc_loyalty_display_account_streak');
             <div class="points-label"><?php esc_html_e('Current Points', 'wc-loyalty-gamification'); ?></div>
         </div>
     </div>
+    <?php
+// In templates/account/loyalty-points.php, replace the coupons grid section with this:
 
-    <!-- Coupons in compact grid -->
-    <h2 class="section-heading"><?php esc_html_e('Your Discount Coupons', 'wc-loyalty-gamification'); ?></h2>
+// Filter active coupons (not used and not expired)
+$active_coupons = array_filter($user_coupons, function($coupon) {
+    $coupon_expired = strtotime($coupon['expires']) < time();
+    return !$coupon['is_used'] && !$coupon_expired;
+});
+?>
+
+<!-- Coupons in compact grid -->
+<h2 class="section-heading"><?php esc_html_e('Your Discount Coupons', 'wc-loyalty-gamification'); ?></h2>
+
+<?php if (!empty($active_coupons)) : ?>
     <div class="coupons-grid">
-        <?php foreach ($user_coupons as $index => $coupon): 
-            $coupon_expired = strtotime($coupon['expires']) < time();
-            $coupon_class = $coupon['is_used'] ? 'used' : ($coupon_expired ? 'expired' : 'active');
+        <?php foreach ($active_coupons as $index => $coupon): 
             $is_premium = isset($coupon['tier']) && $coupon['tier'] === 2000;
         ?>
             <div class="coupon-card <?php echo $is_premium ? 'premium' : ''; ?>">
@@ -236,17 +245,17 @@ do_action('wc_loyalty_display_account_streak');
                     </div>
                 <?php endif; ?>
                 <div class="coupon-expiry">
-                    <?php if ($coupon_expired): ?>
-                        <?php esc_html_e('Expired', 'wc-loyalty-gamification'); ?>
-                    <?php elseif ($coupon['is_used']): ?>
-                        <?php esc_html_e('Used', 'wc-loyalty-gamification'); ?>
-                    <?php else: ?>
-                        <?php printf(esc_html__('Valid until %s', 'wc-loyalty-gamification'), date_i18n(get_option('date_format'), strtotime($coupon['expires']))); ?>
-                    <?php endif; ?>
+                    <?php printf(esc_html__('Valid until %s', 'wc-loyalty-gamification'), date_i18n(get_option('date_format'), strtotime($coupon['expires']))); ?>
                 </div>
             </div>
         <?php endforeach; ?>
     </div>
+<?php else : ?>
+    <div class="woocommerce-info">
+        <?php esc_html_e('You don\'t have any active discount coupons. Earn more points to receive discount rewards!', 'wc-loyalty-gamification'); ?>
+    </div>
+<?php endif; ?>
+
 
     <!-- Points History - Compact -->
     <h2 class="section-heading"><?php esc_html_e('Points History', 'wc-loyalty-gamification'); ?></h2>

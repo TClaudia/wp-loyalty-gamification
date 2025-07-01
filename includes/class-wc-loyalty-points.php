@@ -82,39 +82,65 @@ class WC_Loyalty_Points {
      * @param array $comment_data Comment data
      */
     public function add_points_for_review($comment_ID, $comment_approved, $comment_data) {
-        // Only proceed if this is an approved product review
-        if ($comment_approved !== 1 || $comment_data['comment_type'] !== 'review') {
-            return;
+        try {
+            // Only proceed if this is an approved comment
+            if ($comment_approved !== 1) {
+                return;
+            }
+            
+            // Get the comment to check if it's a product review
+            $comment = get_comment($comment_ID);
+            if (!$comment) {
+                return;
+            }
+            
+            // Check if this is a WooCommerce product review
+            $post = get_post($comment->comment_post_ID);
+            if (!$post || $post->post_type !== 'product') {
+                return;
+            }
+            
+            // Get user ID and product ID
+            $user_id = $comment->user_id;
+            $product_id = $comment->comment_post_ID;
+            
+            // Only proceed if user is logged in
+            if ($user_id === 0) {
+                return;
+            }
+            
+            // Check if the user has purchased this product
+            if (!$this->user_has_purchased_product($user_id, $product_id)) {
+                error_log("WC Loyalty: User {$user_id} has not purchased product {$product_id}");
+                return;
+            }
+            
+            // Check if the user has already been awarded points for reviewing this product
+            if ($this->has_review_points($user_id, $product_id)) {
+                error_log("WC Loyalty: User {$user_id} already has points for product {$product_id} review");
+                return;
+            }
+            
+            // Add points for the review
+            $points_for_review = get_option('wc_loyalty_points_for_review', 50);
+            $success = $this->add_points($user_id, $points_for_review, sprintf(
+                __('Review for product #%s - %d points', 'wc-loyalty-gamification'),
+                $product_id,
+                $points_for_review
+            ));
+            
+            // Log for debugging
+            if ($success) {
+                error_log("WC Loyalty: Successfully added {$points_for_review} points to user {$user_id} for reviewing product {$product_id}");
+            } else {
+                error_log("WC Loyalty: Failed to add points to user {$user_id} for reviewing product {$product_id}");
+            }
+            
+        } catch (Exception $e) {
+            error_log('WC Loyalty Review Points Error: ' . $e->getMessage());
         }
-        
-        // Get user ID and product ID
-        $user_id = $comment_data['user_id'];
-        $product_id = $comment_data['comment_post_ID'];
-        
-        // Only proceed if user is logged in
-        if ($user_id === 0) {
-            return;
-        }
-        
-        // Check if the user has purchased this product
-        if (!$this->user_has_purchased_product($user_id, $product_id)) {
-            return;
-        }
-        
-        // Check if the user has already been awarded points for reviewing this product
-        if ($this->has_review_points($user_id, $product_id)) {
-            return;
-        }
-        
-        // Add points for the review
-        $points_for_review = get_option('wc_loyalty_points_for_review', 50);
-        $this->add_points($user_id, $points_for_review, sprintf(
-            __('Review for product #%s - %d points', 'wc-loyalty-gamification'),
-            $product_id,
-            $points_for_review
-        ));
     }
-    
+
     /**
      * Add points to user account.
      *
@@ -211,6 +237,43 @@ class WC_Loyalty_Points {
             return $inserted;
         }
     }
+
+    /**
+     * Check if user has purchased a specific product.
+     *
+     * @param int $user_id User ID
+     * @param int $product_id Product ID
+     * @return bool True if user has purchased product
+     */
+    public function user_has_purchased_product($user_id, $product_id) {
+        // Use WooCommerce's built-in function if available
+        if (function_exists('wc_customer_bought_product')) {
+            $user = get_user_by('id', $user_id);
+            if ($user && $user->user_email) {
+                return wc_customer_bought_product($user->user_email, $user_id, $product_id);
+            }
+        }
+        
+        // Fallback to custom query
+        global $wpdb;
+        
+        $customer_orders = $wpdb->get_col($wpdb->prepare("
+            SELECT order_items.order_id
+            FROM {$wpdb->prefix}woocommerce_order_items as order_items
+            LEFT JOIN {$wpdb->prefix}woocommerce_order_itemmeta as order_item_meta ON order_items.order_item_id = order_item_meta.order_item_id
+            LEFT JOIN {$wpdb->posts} AS posts ON order_items.order_id = posts.ID
+            LEFT JOIN {$wpdb->postmeta} AS customer_meta ON posts.ID = customer_meta.post_id
+            WHERE posts.post_type = 'shop_order'
+            AND posts.post_status IN ('wc-completed', 'wc-processing', 'wc-on-hold')
+            AND order_items.order_item_type = 'line_item'
+            AND order_item_meta.meta_key = '_product_id'
+            AND order_item_meta.meta_value = %d
+            AND customer_meta.meta_key = '_customer_user'
+            AND customer_meta.meta_value = %d
+        ", $product_id, $user_id));
+        
+        return !empty($customer_orders);
+    }
     
     /**
      * Deduct points from user account.
@@ -261,32 +324,6 @@ class WC_Loyalty_Points {
     }
     
     /**
-     * Check if user has purchased a specific product.
-     *
-     * @param int $user_id User ID
-     * @param int $product_id Product ID
-     * @return bool True if user has purchased product
-     */
-    public function user_has_purchased_product($user_id, $product_id) {
-        global $wpdb;
-        
-        $customer_orders = $wpdb->get_col($wpdb->prepare("
-            SELECT order_items.order_id
-            FROM {$wpdb->prefix}woocommerce_order_items as order_items
-            LEFT JOIN {$wpdb->prefix}woocommerce_order_itemmeta as order_item_meta ON order_items.order_item_id = order_item_meta.order_item_id
-            LEFT JOIN {$wpdb->posts} AS posts ON order_items.order_id = posts.ID
-            WHERE posts.post_type = 'shop_order'
-            AND posts.post_status IN ('wc-completed')
-            AND order_items.order_item_type = 'line_item'
-            AND order_item_meta.meta_key = '_product_id'
-            AND order_item_meta.meta_value = %d
-            AND posts.post_author = %d
-        ", $product_id, $user_id));
-        
-        return !empty($customer_orders);
-    }
-    
-    /**
      * Check if user already received points for a product review.
      *
      * @param int $user_id User ID
@@ -296,8 +333,12 @@ class WC_Loyalty_Points {
     public function has_review_points($user_id, $product_id) {
         $points_history = $this->get_points_history($user_id);
         
+        if (!is_array($points_history)) {
+            return false;
+        }
+        
         foreach ($points_history as $entry) {
-            if (strpos($entry['description'], "Review for product #{$product_id}") !== false) {
+            if (isset($entry['description']) && strpos($entry['description'], "Review for product #{$product_id}") !== false) {
                 return true;
             }
         }
@@ -478,7 +519,7 @@ class WC_Loyalty_Points {
         $total = 0;
         
         foreach ($history as $entry) {
-            if ($entry['points'] > 0) {
+            if (isset($entry['points']) && $entry['points'] > 0) {
                 $total += $entry['points'];
             }
         }
@@ -486,3 +527,4 @@ class WC_Loyalty_Points {
         return $total;
     }
 }
+?>

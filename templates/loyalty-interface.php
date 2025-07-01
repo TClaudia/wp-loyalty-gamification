@@ -1,6 +1,6 @@
 <?php
 /**
- * Loyalty Interface Template
+ * Loyalty Interface Template - FIXED VERSION
  */
 
 defined('ABSPATH') || exit;
@@ -41,6 +41,12 @@ $next_tier = WC_Loyalty()->rewards->get_next_reward_tier($display_points, $rewar
         <div class="wc-loyalty-points-display">
             <div class="wc-loyalty-progress-circle" data-progress="<?php echo esc_attr($progress); ?>">
                 <div class="wc-loyalty-points-count"><?php echo esc_html($display_points); ?></div>
+                
+                <!-- ADAUGĂ HOOK-URILE PENTRU DAILY CHECK-IN AICI: -->
+                <?php
+                // Hook pentru butonul de daily check-in - FOARTE IMPORTANT!
+                do_action('wc_loyalty_after_points_display');
+                ?>
             </div>
             
             <?php if ($cycle_level > 0) : ?>
@@ -78,37 +84,38 @@ $next_tier = WC_Loyalty()->rewards->get_next_reward_tier($display_points, $rewar
         </div>
         
         <?php
-// Add action hook for additional content after points display
-do_action('wc_loyalty_after_points_display');
-?>
-        
-        <?php do_action('wc_loyalty_modal_after_points'); ?>
+        // Hook pentru conținut suplimentar după afișarea punctelor - FOARTE IMPORTANT!
+        do_action('wc_loyalty_modal_after_points');
+        ?>
 
-        <?php if (!empty($user_coupons)) : ?>
-            <div class="wc-loyalty-coupons-list">
-                <h3><?php esc_html_e('Your Coupons', 'wc-loyalty-gamification'); ?></h3>
-                
-                <div class="mini-coupons-container">
-                    <?php foreach ($user_coupons as $index => $coupon) : 
-                        $coupon_expired = strtotime($coupon['expires']) < time();
-                        $is_usable = !$coupon['is_used'] && !$coupon_expired;
-                        
-                        // Skip expired or used coupons
-                        if (!$is_usable) continue;
-                        
-                        $is_premium = isset($coupon['tier']) && $coupon['tier'] === 2000;
-                    ?>
-                        <div class="mini-coupon <?php echo $is_premium ? 'premium' : ''; ?>">
-                            <div class="mini-coupon-info">
-                                <?php printf(esc_html__('%d%%', 'wc-loyalty-gamification'), $coupon['discount']); ?>
+        <?php
+        // Filter out used and expired coupons
+        if (!empty($user_coupons)) : 
+            $active_coupons = array_filter($user_coupons, function($coupon) {
+                $coupon_expired = strtotime($coupon['expires']) < time();
+                return !$coupon['is_used'] && !$coupon_expired;
+            });
+            
+            if (!empty($active_coupons)) : ?>
+                <div class="wc-loyalty-coupons-list">
+                    <h3><?php esc_html_e('Your Coupons', 'wc-loyalty-gamification'); ?></h3>
+                    
+                    <div class="mini-coupons-container">
+                        <?php foreach ($active_coupons as $index => $coupon) : 
+                            $is_premium = isset($coupon['tier']) && $coupon['tier'] === 2000;
+                        ?>
+                            <div class="mini-coupon <?php echo $is_premium ? 'premium' : ''; ?>">
+                                <div class="mini-coupon-info">
+                                    <?php printf(esc_html__('%d%%', 'wc-loyalty-gamification'), $coupon['discount']); ?>
+                                </div>
+                                <button class="mini-copy-btn" data-code="<?php echo esc_attr($coupon['code']); ?>">
+                                    <?php esc_html_e('Copy', 'wc-loyalty-gamification'); ?>
+                                </button>
                             </div>
-                            <button class="mini-copy-btn" data-code="<?php echo esc_attr($coupon['code']); ?>">
-                                <?php esc_html_e('Copy', 'wc-loyalty-gamification'); ?>
-                            </button>
-                        </div>
-                    <?php endforeach; ?>
+                        <?php endforeach; ?>
+                    </div>
                 </div>
-            </div>
+            <?php endif; ?>
         <?php endif; ?>
         
         <div class="wc-loyalty-rewards-list">
@@ -176,9 +183,65 @@ do_action('wc_loyalty_after_points_display');
     </div>
 </div>
 
-<!-- Compact Floating Coupon Interface -->
+<!-- CSS și JavaScript rămân la fel ca în versiunea anterioară -->
 <style>
-/* Compact Floating Coupon Interface Styles */
+/* Daily Check-in button minimalist - ADAUGĂ ACEST CSS */
+.wc-loyalty-check-in-button {
+    position: relative;
+    bottom: 100%;
+    right: 100%;
+    background-color:rgb(255, 255, 255);
+    color: white;
+    width: 0px;
+    height: 0px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    cursor: pointer;
+    border: none;
+}
+
+
+
+.wc-loyalty-check-in-button.disabled {
+    background-color: #aaa;
+    cursor: not-allowed;
+}
+
+/* Notificări pentru daily check-in */
+.wc-loyalty-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 10px 15px;
+    background-color: white;
+    border-left: 4px solid #7952b3;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    z-index: 9999;
+    transition: all 0.3s ease;
+    transform: translateX(110%);
+}
+
+.wc-loyalty-notification.show {
+    transform: translateX(0);
+}
+
+.wc-loyalty-notification.success {
+    border-left-color: #28a745;
+}
+
+.wc-loyalty-notification.error {
+    border-left-color: #dc3545;
+}
+
+.wc-loyalty-notification.info {
+    border-left-color: #17a2b8;
+}
+
+/* Restul CSS-ului pentru cupoane rămâne la fel... */
 .mini-loyalty-coupons {
     position: fixed;
     bottom: 20px;
@@ -246,7 +309,6 @@ do_action('wc_loyalty_after_points_display');
     margin-bottom: 0;
 }
 
-/* Different background colors for each coupon */
 .mini-coupon-item.discount-20 {
     background-color: #f0e7ff;
 }
@@ -298,6 +360,7 @@ do_action('wc_loyalty_after_points_display');
 }
 </style>
 
+<!-- Restul conținutului rămâne la fel... -->
 <div class="mini-loyalty-coupons">
     <button class="mini-coupon-toggle" id="mini-coupon-toggle">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -307,34 +370,43 @@ do_action('wc_loyalty_after_points_display');
     </button>
     
     <div class="mini-coupon-panel" id="mini-coupon-panel">
-        <?php foreach ($user_coupons as $coupon) : 
-            $is_premium = isset($coupon['tier']) && $coupon['tier'] === 2000;
-            $coupon_expired = strtotime($coupon['expires']) < time();
-            $coupon_usable = !$coupon['is_used'] && !$coupon_expired;
-            
-            // Skip expired or used coupons
-            if (!$coupon_usable) continue;
-            
-            // Set class based on discount percentage
-            $discount_class = 'discount-' . $coupon['discount'];
-        ?>
-            <div class="mini-coupon-item <?php echo esc_attr($discount_class); ?>">
-                <div class="mini-coupon-discount">
-                    <?php echo esc_html($coupon['discount']); ?>%
-                    <?php if ($is_premium) : ?>
-                        <span class="mini-premium-badge">P</span>
-                    <?php endif; ?>
+        <?php 
+        if (!empty($user_coupons)) {
+            foreach ($user_coupons as $coupon) : 
+                $is_premium = isset($coupon['tier']) && $coupon['tier'] === 2000;
+                $coupon_expired = strtotime($coupon['expires']) < time();
+                $coupon_usable = !$coupon['is_used'] && !$coupon_expired;
+                
+                // Skip expired or used coupons
+                if (!$coupon_usable) continue;
+                
+                // Set class based on discount percentage
+                $discount_class = 'discount-' . $coupon['discount'];
+            ?>
+                <div class="mini-coupon-item <?php echo esc_attr($discount_class); ?>">
+                    <div class="mini-coupon-discount">
+                        <?php echo esc_html($coupon['discount']); ?>%
+                        <?php if ($is_premium) : ?>
+                            <span class="mini-premium-badge">P</span>
+                        <?php endif; ?>
+                    </div>
+                    <button class="mini-copy-btn" data-code="<?php echo esc_attr($coupon['code']); ?>">
+                        <?php esc_html_e('Copy', 'wc-loyalty-gamification'); ?>
+                    </button>
                 </div>
-                <button class="mini-copy-btn" data-code="<?php echo esc_attr($coupon['code']); ?>">
-                    <?php esc_html_e('Copy', 'wc-loyalty-gamification'); ?>
-                </button>
-            </div>
-        <?php endforeach; ?>
+            <?php 
+            endforeach;
+        }
+        ?>
     </div>
 </div>
 
+<!-- JavaScript rămâne la fel ca în versiunea anterioară -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Codul JavaScript rămâne exact la fel...
+    // [JavaScript code remains the same as previous version]
+    
     // jQuery safety check - crucial fix
     if (typeof jQuery === 'undefined') {
         console.error('jQuery is not loaded. Loyalty functionality may not work properly.');
@@ -542,3 +614,4 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <!-- Notifications Container -->
 <div class="wc-loyalty-notifications-container"></div>
+?>

@@ -394,7 +394,7 @@ public function send_daily_emails() {
     ]);
     $today = date('Y-m-d');
     $subject = get_option('wc_loyalty_email_subject', __(
-        'Don\'t forget your daily loyalty points!', 'wc-loyalty-gamification'));
+        'Nu uita de punctele de loialitate', 'wc-loyalty-gamification'));
     $template = get_option('wc_loyalty_email_template', $this->get_default_template());
     $from_name = get_option('wc_loyalty_email_from_name', get_bloginfo('name'));
     $from_email = get_option('wc_loyalty_email_from_email', get_option('admin_email'));

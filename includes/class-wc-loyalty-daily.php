@@ -23,11 +23,9 @@ class WC_Loyalty_Daily {
         // Adaugă setările pentru milestone rewards
         add_action('admin_init', array($this, 'add_milestone_settings'));
         
-        // AJAX handler pentru claim daily points
+        // AJAX handler pentru claim daily points - FOARTE IMPORTANT!
         add_action('wp_ajax_claim_daily_points', array($this, 'claim_daily_points'));
-        
-        // AJAX handler pentru claim milestone reward
-        add_action('wp_ajax_claim_milestone_reward', array($this, 'claim_milestone_reward'));
+        add_action('wp_ajax_nopriv_claim_daily_points', array($this, 'claim_daily_points')); // Pentru utilizatori neautentificați (dacă e cazul)
         
         // Adaugă butonul minimalist lângă bara de progres
         add_action('wc_loyalty_after_points_display', array($this, 'display_minimalist_button'));
@@ -379,91 +377,140 @@ public function display_minimalist_button() {
      * AJAX handler pentru claim daily points
      */
     public function claim_daily_points() {
-        // Verifică dacă utilizatorul este autentificat
-        if (!is_user_logged_in()) {
-            wp_send_json_error(array(
-                'message' => __('You must be logged in to claim points.', 'wc-loyalty-gamification')
-            ));
-            return;
-        }
+        // Pornește output buffering pentru a captura erorile
+        ob_start();
         
-        // Verifică nonce
-        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'wc_loyalty_nonce')) {
-            wp_send_json_error(array(
-                'message' => __('Security check failed.', 'wc-loyalty-gamification')
-            ));
-            return;
-        }
-        
-        $user_id = get_current_user_id();
-        
-        // Verifică dacă a revendicat deja azi
-        $last_claim = get_user_meta($user_id, '_wc_loyalty_last_daily_claim', true);
-        $today = date('Y-m-d');
-        
-        if ($last_claim === $today) {
-            wp_send_json_error(array(
-                'message' => __('You have already claimed your daily points today!', 'wc-loyalty-gamification')
-            ));
-            return;
-        }
-        
-        // Obține valoarea punctelor
-        $daily_points = get_option('wc_loyalty_daily_points', 5);
-        $max_streak = get_option('wc_loyalty_max_streak', 5);
-        $streak_bonus = get_option('wc_loyalty_streak_bonus', 10);
-        $points_to_award = $daily_points;
-        
-        // Verifică streak
-        $streak = get_user_meta($user_id, '_wc_loyalty_streak', true);
-        $streak = intval($streak);
-        $yesterday = date('Y-m-d', strtotime('-1 day'));
-        
-        // Dacă ultima revendicare a fost ieri, incrementează streak
-        if ($last_claim === $yesterday) {
-            $streak++;
-        } else {
-            // Resetează streak dacă lanțul a fost întrerupt
-            $streak = 1;
-        }
-        
-        // Verifică dacă s-a atins streak-ul maxim
-        $message = sprintf(__('You earned %d points for checking in today!', 'wc-loyalty-gamification'), $daily_points);
-        
-        if ($streak >= $max_streak) {
-            // Acordă bonus pentru streak
-            $points_to_award += $streak_bonus;
+        try {
+            // Verifică dacă utilizatorul este autentificat
+            if (!is_user_logged_in()) {
+                ob_end_clean();
+                wp_send_json_error(array(
+                    'message' => __('You must be logged in to claim points.', 'wc-loyalty-gamification')
+                ));
+                return;
+            }
             
-            // Actualizează mesajul
-            $message = sprintf(
-                __('Bonus! You reached a %d day streak and earned %d extra points!', 'wc-loyalty-gamification'),
-                $max_streak,
-                $streak_bonus
-            );
+            // Verifică nonce
+            if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'wc_loyalty_nonce')) {
+                ob_end_clean();
+                wp_send_json_error(array(
+                    'message' => __('Security check failed.', 'wc-loyalty-gamification')
+                ));
+                return;
+            }
             
-            // Resetează streak după acordarea bonusului
-            $streak = 0;
+            $user_id = get_current_user_id();
+            
+            // Verifică dacă a revendicat deja azi
+            $last_claim = get_user_meta($user_id, '_wc_loyalty_last_daily_claim', true);
+            $today = date('Y-m-d');
+            
+            if ($last_claim === $today) {
+                ob_end_clean();
+                wp_send_json_error(array(
+                    'message' => __('You have already claimed your daily points today!', 'wc-loyalty-gamification')
+                ));
+                return;
+            }
+            
+            // Obține valoarea punctelor - cu valori implicite sigure
+            $daily_points = intval(get_option('wc_loyalty_daily_points', 5));
+            if ($daily_points <= 0) $daily_points = 5; // Fallback la 5 puncte
+            
+            $max_streak = intval(get_option('wc_loyalty_max_streak', 5));
+            if ($max_streak <= 0) $max_streak = 5; // Fallback la 5 zile
+            
+            $streak_bonus = intval(get_option('wc_loyalty_streak_bonus', 10));
+            if ($streak_bonus < 0) $streak_bonus = 10; // Fallback la 10 puncte bonus
+            
+            $points_to_award = $daily_points;
+            
+            // Verifică streak
+            $streak = intval(get_user_meta($user_id, '_wc_loyalty_streak', true));
+            if ($streak < 0) $streak = 0;
+            
+            $yesterday = date('Y-m-d', strtotime('-1 day'));
+            
+            // Dacă ultima revendicare a fost ieri, incrementează streak
+            if ($last_claim === $yesterday) {
+                $streak++;
+            } else {
+                // Resetează streak dacă lanțul a fost întrerupt
+                $streak = 1;
+            }
+            
+            // Verifică dacă s-a atins streak-ul maxim
+            $message = sprintf(__('You earned %d points for checking in today!', 'wc-loyalty-gamification'), $daily_points);
+            
+            if ($streak >= $max_streak) {
+                // Acordă bonus pentru streak
+                $points_to_award += $streak_bonus;
+                
+                // Actualizează mesajul
+                $message = sprintf(
+                    __('Bonus! You reached a %d day streak and earned %d extra points!', 'wc-loyalty-gamification'),
+                    $max_streak,
+                    $streak_bonus
+                );
+                
+                // Resetează streak după acordarea bonusului
+                $streak = 0;
+            }
+            
+            // Verifică dacă WC_Loyalty și componentele sunt disponibile
+            if (!function_exists('WC_Loyalty') || !WC_Loyalty() || !WC_Loyalty()->points) {
+                ob_end_clean();
+                wp_send_json_error(array(
+                    'message' => __('Loyalty system is not available. Please try again later.', 'wc-loyalty-gamification')
+                ));
+                return;
+            }
+            
+            // Adaugă puncte
+            $success = WC_Loyalty()->points->add_points($user_id, $points_to_award, sprintf(
+                __('Daily check-in - Day %d', 'wc-loyalty-gamification'),
+                $streak
+            ));
+            
+            if (!$success) {
+                ob_end_clean();
+                wp_send_json_error(array(
+                    'message' => __('Failed to add points. Please try again.', 'wc-loyalty-gamification')
+                ));
+                return;
+            }
+            
+            // Actualizează metadatele utilizatorului
+            update_user_meta($user_id, '_wc_loyalty_last_daily_claim', $today);
+            update_user_meta($user_id, '_wc_loyalty_streak', $streak);
+            
+            // Obține punctele actualizate pentru răspuns
+            $current_points = WC_Loyalty()->points->get_user_display_points($user_id);
+            
+            // Curăță output buffer-ul
+            ob_end_clean();
+            
+            // Trimite răspunsul de succes
+            wp_send_json_success(array(
+                'message' => $message,
+                'points' => $current_points,
+                'streak' => $streak
+            ));
+            
+        } catch (Exception $e) {
+            // Log eroarea pentru debugging
+            error_log('Daily check-in error: ' . $e->getMessage());
+            
+            // Curăță output buffer-ul
+            ob_end_clean();
+            
+            wp_send_json_error(array(
+                'message' => __('An unexpected error occurred. Please try again.', 'wc-loyalty-gamification')
+            ));
         }
         
-        // Adaugă puncte
-        WC_Loyalty()->points->add_points($user_id, $points_to_award, sprintf(
-            __('Daily check-in - Day %d', 'wc-loyalty-gamification'),
-            $streak
-        ));
-        
-        // Actualizează metadatele utilizatorului
-        update_user_meta($user_id, '_wc_loyalty_last_daily_claim', $today);
-        update_user_meta($user_id, '_wc_loyalty_streak', $streak);
-        
-        // Obține punctele actualizate pentru răspuns
-        $current_points = WC_Loyalty()->points->get_user_display_points($user_id);
-        
-        // Trimite răspunsul de succes
-        wp_send_json_success(array(
-            'message' => $message,
-            'points' => $current_points,
-            'streak' => $streak
-        ));
+        // Safety net - asigură-te că scriptul se oprește
+        exit;
     }
     
     /**

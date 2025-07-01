@@ -215,8 +215,34 @@
                             // Show success message
                             WCLoyalty.showNotification(response.data && response.data.message ? response.data.message : 'Coupon applied successfully!', 'success');
                             
-                            // Reload the page to reflect changes
-                            window.location.reload();
+                            // Hide the applied coupon from interface immediately
+                            var appliedCouponCode = $button.data('coupon');
+                            $('.mini-coupon').each(function() {
+                                var couponBtn = $(this).find('.mini-copy-btn');
+                                if (couponBtn.data('code') === appliedCouponCode) {
+                                    $(this).fadeOut(300, function() {
+                                        $(this).remove();
+                                        
+                                        // Check if no more coupons are visible
+                                        if ($('.mini-coupon:visible').length === 0) {
+                                            $('.wc-loyalty-coupons-list').fadeOut(300);
+                                        }
+                                    });
+                                }
+                            });
+                            
+                            // Also hide from main modal coupons if open
+                            $('.wc-loyalty-coupon').each(function() {
+                                var couponBtn = $(this).find('.wc-loyalty-copy-code');
+                                if (couponBtn.data('code') === appliedCouponCode) {
+                                    $(this).fadeOut(300);
+                                }
+                            });
+                            
+                            // Reload the page after a short delay to reflect changes
+                            setTimeout(function() {
+                                window.location.reload();
+                            }, 1500);
                         } else {
                             // Show error message
                             WCLoyalty.showNotification(response && response.data && response.data.message ? response.data.message : 'Failed to apply coupon', 'error');
@@ -224,13 +250,6 @@
                             $button.text('Apply');
                         }
                     },
-                    error: function(xhr, status, error) {
-                        // Show error message with details for debugging
-                        console.error('AJAX Error:', status, error);
-                        WCLoyalty.showNotification('An error occurred. Please try again.', 'error');
-                        $button.prop('disabled', false);
-                        $button.text('Apply');
-                    }
                 });
             });
             

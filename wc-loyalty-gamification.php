@@ -699,3 +699,384 @@ $translations_file = WC_LOYALTY_PLUGIN_DIR . 'wc-loyalty-translations.php';
 if (file_exists($translations_file)) {
     include_once($translations_file);
 }
+
+/**
+ * Sistem îmbunătățit pentru marcarea și ascunderea cupoanelor utilizate
+ * Adaugă în wc-loyalty-gamification.php sau într-un fișier separat
+ */
+
+// 1. Hook îmbunătățit pentru detectarea utilizării cupoanelor
+add_action('woocommerce_order_status_processing', 'wc_loyalty_mark_coupons_used_immediately', 10, 2);
+add_action('woocommerce_order_status_completed', 'wc_loyalty_mark_coupons_used_immediately', 10, 2);
+add_action('woocommerce_payment_complete', 'wc_loyalty_mark_coupons_used_on_payment');
+
+/**
+ * Marchează cupoanele ca utilizate imediat după plată sau procesare
+ */
+function wc_loyalty_mark_coupons_used_immediately($order_id, $order = null) {
+    if (!$order) {
+        $order = wc_get_order($order_id);
+    }
+    
+    if (!$order) return;
+    
+    $user_id = $order->get_user_id();
+    if ($user_id <= 0) return;
+    
+    // Obține cupoanele aplicate pe comandă
+    $applied_coupons = $order->get_coupon_codes();
+    if (empty($applied_coupons)) return;
+    
+    wc_loyalty_debug_log("Processing coupons for order #$order_id: " . implode(', ', $applied_coupons));
+    
+    foreach ($applied_coupons as $coupon_code) {
+        // Verifică dacă este un cupon de loialitate
+        if (wc_loyalty_is_loyalty_coupon($coupon_code)) {
+            wc_loyalty_mark_specific_coupon_used($user_id, $coupon_code, $order_id);
+        }
+    }
+}
+
+/**
+ * Marchează cupoanele la finalizarea plății
+ */
+function wc_loyalty_mark_coupons_used_on_payment($order_id) {
+    wc_loyalty_mark_coupons_used_immediately($order_id);
+}
+
+/**
+ * Verifică dacă un cupon este un cupon de loialitate
+ */
+function wc_loyalty_is_loyalty_coupon($coupon_code) {
+    // Metoda 1: Verifică prin WC_Coupon
+    $coupon = new WC_Coupon($coupon_code);
+    if ($coupon && $coupon->get_id()) {
+        $is_loyalty = get_post_meta($coupon->get_id(), '_wc_loyalty_coupon', true);
+        if ($is_loyalty === 'yes') {
+            return true;
+        }
+    }
+    
+    // Metoda 2: Verifică prin prefixul cuponului
+    if (strpos($coupon_code, 'LOYALTY') === 0) {
+        return true;
+    }
+    
+    // Metoda 3: Verifică în cupoanele utilizatorului
+    if (is_user_logged_in()) {
+        $user_id = get_current_user_id();
+        if (function_exists('WC_Loyalty') && WC_Loyalty()->rewards) {
+            $user_coupons = WC_Loyalty()->rewards->get_all_user_coupons($user_id);
+            if (is_array($user_coupons)) {
+                foreach ($user_coupons as $coupon) {
+                    if (isset($coupon['code']) && $coupon['code'] === $coupon_code) {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+    
+    return false;
+}
+
+/**
+ * Marchează un cupon specific ca utilizat
+ */
+function wc_loyalty_mark_specific_coupon_used($user_id, $coupon_code, $order_id = null) {
+    // Verifică dacă WC_Loyalty este disponibil
+    if (!function_exists('WC_Loyalty') || !WC_Loyalty()->rewards) {
+        wc_loyalty_debug_log("WC_Loyalty not available for marking coupon: $coupon_code");
+        return false;
+    }
+    
+    // Obține cupoanele utilizatorului
+    $user_coupons = WC_Loyalty()->rewards->get_user_coupons($user_id);
+    if (!is_array($user_coupons)) {
+        wc_loyalty_debug_log("No user coupons found for user $user_id");
+        return false;
+    }
+    
+    $coupon_found = false;
+    $updated_coupons = $user_coupons;
+    
+    // Marchează cuponul ca utilizat
+    foreach ($updated_coupons as $key => $coupon) {
+        if (isset($coupon['code']) && $coupon['code'] === $coupon_code) {
+            $updated_coupons[$key]['is_used'] = true;
+            $updated_coupons[$key]['used_date'] = current_time('mysql');
+            if ($order_id) {
+                $updated_coupons[$key]['used_order_id'] = $order_id;
+            }
+            $coupon_found = true;
+            wc_loyalty_debug_log("Marked coupon $coupon_code as used for user $user_id");
+            break;
+        }
+    }
+    
+    if ($coupon_found) {
+        // Salvează cupoanele actualizate
+        update_user_meta($user_id, '_wc_loyalty_coupons', $updated_coupons);
+        
+        // Declanșează hook pentru alte funcționalități
+        do_action('wc_loyalty_coupon_marked_used', $user_id, $coupon_code, $order_id);
+        
+        return true;
+    }
+    
+    wc_loyalty_debug_log("Coupon $coupon_code not found in user $user_id coupons");
+    return false;
+}
+
+/**
+ * AJAX handler pentru marcarea manuală a cuponului ca utilizat
+ */
+add_action('wp_ajax_wc_loyalty_mark_coupon_used', 'wc_loyalty_ajax_mark_coupon_used');
+
+function wc_loyalty_ajax_mark_coupon_used() {
+    // Verificări de securitate
+    if (!wp_verify_nonce($_POST['nonce'], 'wc_loyalty_nonce')) {
+        wp_send_json_error('Security check failed');
+        return;
+    }
+    
+    if (!is_user_logged_in()) {
+        wp_send_json_error('User not logged in');
+        return;
+    }
+    
+    $coupon_code = sanitize_text_field($_POST['coupon_code']);
+    $user_id = get_current_user_id();
+    
+    if (empty($coupon_code)) {
+        wp_send_json_error('Invalid coupon code');
+        return;
+    }
+    
+    // Marchează cuponul ca utilizat
+    $success = wc_loyalty_mark_specific_coupon_used($user_id, $coupon_code);
+    
+    if ($success) {
+        wp_send_json_success(array(
+            'message' => __('Cuponul a fost marcat ca utilizat', 'wc-loyalty-gamification'),
+            'coupon_code' => $coupon_code
+        ));
+    } else {
+        wp_send_json_error('Failed to mark coupon as used');
+    }
+}
+
+/**
+ * Funcție pentru filtrarea cupoanelor active (nu utilizate și nu expirate)
+ */
+function wc_loyalty_get_active_user_coupons($user_id, $include_used = false) {
+    if (!function_exists('WC_Loyalty') || !WC_Loyalty()->rewards) {
+        return array();
+    }
+    
+    $all_coupons = WC_Loyalty()->rewards->get_user_coupons($user_id);
+    if (!is_array($all_coupons)) {
+        return array();
+    }
+    
+    $active_coupons = array();
+    $current_time = time();
+    
+    foreach ($all_coupons as $coupon) {
+        // Verifică dacă cuponul este utilizat
+        $is_used = isset($coupon['is_used']) && $coupon['is_used'];
+        
+        // Verifică dacă cuponul este expirat
+        $is_expired = false;
+        if (isset($coupon['expires'])) {
+            $expiry_time = strtotime($coupon['expires']);
+            $is_expired = ($expiry_time && $expiry_time < $current_time);
+        }
+        
+        // Include cuponul dacă:
+        // - Nu este utilizat și nu este expirat, SAU
+        // - include_used este true și vrem să vedem toate cupoanele
+        if ((!$is_used && !$is_expired) || $include_used) {
+            // Adaugă proprietăți suplimentare pentru afișare
+            $coupon['is_expired'] = $is_expired;
+            $coupon['is_active'] = !$is_used && !$is_expired;
+            $active_coupons[] = $coupon;
+        }
+    }
+    
+    return $active_coupons;
+}
+
+/**
+ * Înlocuiește funcția get_user_coupons din clasa WC_Loyalty_Rewards
+ * pentru a returna doar cupoanele active în mod implicit
+ */
+add_filter('wc_loyalty_filter_user_coupons', 'wc_loyalty_filter_active_coupons', 10, 2);
+
+function wc_loyalty_filter_active_coupons($coupons, $user_id) {
+    return wc_loyalty_get_active_user_coupons($user_id, false);
+}
+
+/**
+ * Adaugă JavaScript pentru gestionarea cupoanelor în frontend
+ */
+add_action('wp_footer', 'wc_loyalty_coupon_management_script');
+
+function wc_loyalty_coupon_management_script() {
+    if (!is_user_logged_in()) return;
+    ?>
+    <script>
+    (function($) {
+        'use strict';
+        
+        // Funcție pentru ascunderea cupoanelor utilizate
+        function hideCouponElement(couponCode) {
+            // Ascunde din modal
+            $('.wc-loyalty-coupon').each(function() {
+                var code = $(this).find('.wc-loyalty-coupon-code').text().trim();
+                if (code === couponCode) {
+                    $(this).fadeOut(300, function() {
+                        $(this).remove();
+                    });
+                }
+            });
+            
+            // Ascunde din mini coupons
+            $('.mini-coupon').each(function() {
+                var code = $(this).find('.mini-copy-btn').data('code');
+                if (code === couponCode) {
+                    $(this).fadeOut(300, function() {
+                        $(this).remove();
+                    });
+                }
+            });
+            
+            // Ascunde din cart coupons
+            $('.wc-loyalty-cart-coupon').each(function() {
+                var code = $(this).find('.wc-loyalty-cart-coupon-code').text().trim();
+                if (code === couponCode) {
+                    $(this).fadeOut(300, function() {
+                        $(this).remove();
+                    });
+                }
+            });
+        }
+        
+        // Monitor pentru aplicarea cupoanelor în coș
+        $(document).on('applied_coupon_in_checkout', function(event, couponCode) {
+            if (couponCode && couponCode.indexOf('LOYALTY') === 0) {
+                setTimeout(function() {
+                    hideCouponElement(couponCode);
+                }, 1000);
+            }
+        });
+        
+        // Monitor pentru evenimente WooCommerce
+        $(document.body).on('applied_coupon', function(event, couponCode) {
+            if (couponCode && couponCode.indexOf('LOYALTY') === 0) {
+                setTimeout(function() {
+                    hideCouponElement(couponCode);
+                }, 1000);
+            }
+        });
+        
+        // Funcție pentru marcarea manuală a cuponului ca utilizat
+        window.markCouponAsUsed = function(couponCode) {
+            $.ajax({
+                url: wcLoyaltyData.ajaxurl,
+                type: 'POST',
+                data: {
+                    action: 'wc_loyalty_mark_coupon_used',
+                    coupon_code: couponCode,
+                    nonce: wcLoyaltyData.nonce
+                },
+                success: function(response) {
+                    if (response.success) {
+                        hideCouponElement(couponCode);
+                        if (typeof showNotification === 'function') {
+                            showNotification(response.data.message, 'success');
+                        }
+                    }
+                }
+            });
+        };
+        
+    })(jQuery);
+    </script>
+    <?php
+}
+
+/**
+ * Adaugă buton pentru marcarea manuală a cuponului ca utilizat (opțional)
+ */
+function wc_loyalty_add_mark_used_button($coupon) {
+    if (isset($coupon['is_used']) && $coupon['is_used']) {
+        return; // Nu afișa butonul pentru cupoanele deja utilizate
+    }
+    
+    $coupon_code = esc_attr($coupon['code']);
+    echo '<button type="button" class="wc-loyalty-mark-used-btn" onclick="markCouponAsUsed(\'' . $coupon_code . '\')" style="margin-left: 5px; font-size: 10px; padding: 2px 6px;">Marchează ca utilizat</button>';
+}
+
+/**
+ * Hook pentru curățarea periodică a cupoanelor expirate
+ */
+add_action('wp', 'wc_loyalty_schedule_cleanup');
+
+function wc_loyalty_schedule_cleanup() {
+    if (!wp_next_scheduled('wc_loyalty_cleanup_expired_coupons')) {
+        wp_schedule_event(time(), 'daily', 'wc_loyalty_cleanup_expired_coupons');
+    }
+}
+
+add_action('wc_loyalty_cleanup_expired_coupons', 'wc_loyalty_cleanup_expired_coupons');
+
+function wc_loyalty_cleanup_expired_coupons() {
+    global $wpdb;
+    
+    // Obține toți utilizatorii cu cupoane
+    $users_with_coupons = $wpdb->get_col("
+        SELECT user_id 
+        FROM {$wpdb->usermeta} 
+        WHERE meta_key = '_wc_loyalty_coupons' 
+        AND meta_value != ''
+    ");
+    
+    $cleaned_count = 0;
+    $current_time = time();
+    
+    foreach ($users_with_coupons as $user_id) {
+        $user_coupons = get_user_meta($user_id, '_wc_loyalty_coupons', true);
+        
+        if (!is_array($user_coupons)) continue;
+        
+        $active_coupons = array();
+        $had_expired = false;
+        
+        foreach ($user_coupons as $coupon) {
+            $is_expired = false;
+            if (isset($coupon['expires'])) {
+                $expiry_time = strtotime($coupon['expires']);
+                $is_expired = ($expiry_time && $expiry_time < $current_time);
+            }
+            
+            // Păstrează doar cupoanele care nu sunt expirate sau care sunt utilizate (pentru istoric)
+            if (!$is_expired || (isset($coupon['is_used']) && $coupon['is_used'])) {
+                $active_coupons[] = $coupon;
+            } else {
+                $had_expired = true;
+            }
+        }
+        
+        // Actualizează doar dacă au fost cupoane expirate
+        if ($had_expired && count($active_coupons) !== count($user_coupons)) {
+            update_user_meta($user_id, '_wc_loyalty_coupons', $active_coupons);
+            $cleaned_count++;
+        }
+    }
+    
+    if ($cleaned_count > 0) {
+        wc_loyalty_debug_log("Cleaned expired coupons for $cleaned_count users");
+    }
+}
+?>
